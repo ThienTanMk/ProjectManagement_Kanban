@@ -10,17 +10,23 @@ import {
   MultiSelect,
   NumberInput,
   Text,
+  ActionIcon,
 } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import dayjs from "dayjs";
 import { useGetAvailableUsers, useGetMe } from "@/hooks/user";
 import { CreateTaskDto, Priority } from "@/types/api";
-import GenerativeTaskModal from "./GenerativeTaskModal";
+import { IconSparkles } from "@tabler/icons-react";
 interface AddTaskModalProps {
   opened: boolean;
   onClose: () => void;
   onAddTask: (task: CreateTaskDto) => void;
 }
+
+<ActionIcon color="blue">
+  <IconSparkles size={16} />
+</ActionIcon>;
+
 export default function AddTaskModal({
   opened,
   onClose,
@@ -91,14 +97,14 @@ export default function AddTaskModal({
           </Text>
 
           {isGenerativeMode && (
-            <Text size="xl" fw={700} className="ml-325px">
+            <Text size="xl" fw={700} style={{ marginLeft: "325px" }}>
               Generative Task
             </Text>
           )}
         </div>
       }
       // size={isGenerativeMode ? "90vw" : "xl"}
-      size="xl" 
+      size="xl"
       centered={!isGenerativeMode}
       // centered={true}
       classNames={{
@@ -112,15 +118,40 @@ export default function AddTaskModal({
       }}
     >
       <Stack gap="lg" className={isGenerativeMode ? "w-1/2 pr-4" : "w-full"}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <Text size="lg" fw={600}>
+              Task Title
+            </Text>
+            <Text c="red">*</Text>
+          </div>
+
+          {title.trim() && (
+            <ActionIcon
+              color={isGenerativeMode ? "blue" : ""}
+              variant={isGenerativeMode ? "filled" : "light"}
+              onClick={() => setIsGenerativeMode((prev) => !prev)}
+              title={
+                isGenerativeMode
+                  ? "Turn off generative mode"
+                  : "Switch to generative mode"
+              }
+              size="sm"
+              radius="xl"
+            >
+              <IconSparkles size={16} />
+            </ActionIcon>
+          )}
+        </div>
+
         <TextInput
-          label="Task Title"
           placeholder="Enter task title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
           size="lg"
-          labelProps={{ style: { fontSize: "1.1rem", fontWeight: 600 } }}
         />
+
         <Textarea
           label="Description"
           placeholder="Enter task description"
@@ -188,13 +219,6 @@ export default function AddTaskModal({
               <Button size="lg" onClick={handleSubmit} disabled={!title.trim()}>
                 Add Task
               </Button>
-              <Button
-                size="lg"
-                onClick={handleGenerativeSubmit}
-                disabled={!title.trim()}
-              >
-                Generative Task
-              </Button>
             </>
           ) : (
             <div className="flex justify-end">
@@ -208,19 +232,37 @@ export default function AddTaskModal({
       </Stack>
       {isGenerativeMode && (
         <Stack gap="lg" className="w-1/2 pl-4">
-          <TextInput
+          {/* <TextInput
             label="Generated Task Title"
             placeholder="Generated task title"
-            value={title} //thay bằng giá trị từ agent 
+            value={title} //thay bằng giá trị từ agent
             onChange={(e) => setTitle(e.target.value)}
             required
             size="lg"
             labelProps={{ style: { fontSize: "1.1rem", fontWeight: 600 } }}
-          />
+          /> */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <Text size="lg" fw={600}>
+              Generated task Title
+            </Text>
+            <Text c="red">*</Text>
+          </div>
+
+        </div>
+
+        <TextInput
+          placeholder="Enter task title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+          size="lg"
+          labelProps={{ style: { fontSize: "1.1rem", fontWeight: 600 } }}
+        />
           <Textarea
             label="Generated Description"
             placeholder="Generated task description"
-            value={description} //thay bằng giá trị từ agent 
+            value={description} //thay bằng giá trị từ agent
             onChange={(e) => setDescription(e.target.value)}
             minRows={3}
             size="lg"
@@ -242,9 +284,9 @@ export default function AddTaskModal({
           <MultiSelect
             label="Generated Assignees"
             placeholder="Generated assignees"
-            value={assignees} // thay bằng giá trị từ agent 
+            value={assignees} // thay bằng giá trị từ agent
             onChange={setAssignees}
-            data={[]} // API 
+            data={[]} // API
             searchable
             size="lg"
           />
@@ -256,13 +298,14 @@ export default function AddTaskModal({
               {authors}
             </Text>
             <Text size="sm" c="dimmed" mt="xs">
-              Authors are automatically set to the current user and cannot be changed.
+              Authors are automatically set to the current user and cannot be
+              changed.
             </Text>
           </div>
           <DateTimePicker
             label="Generated Deadline"
             placeholder="Generated deadline"
-            value={deadline} //thay bằng giá trị từ agent 
+            value={deadline} //thay bằng giá trị từ agent
             onChange={(value) =>
               setDeadline(value ? dayjs(value).toDate() : null)
             }

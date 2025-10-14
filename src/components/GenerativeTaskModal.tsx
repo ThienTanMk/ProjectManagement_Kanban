@@ -9,10 +9,27 @@ import {
   Stack,
   MultiSelect,
   Text,
+  Paper,
+  Box,
+  Group,
+  ActionIcon,
+  ScrollArea,
+  Badge,
 } from "@mantine/core";
 import dayjs from "dayjs";
 import { DateTimePicker } from "@mantine/dates";
 import { CreateTaskDto, Priority } from "@/types/api";
+import { notifications } from "@mantine/notifications";
+import { IconClock, IconSparkles, IconX } from "@tabler/icons-react";
+
+export interface GeneratedTask {
+  id: string;
+  name: string;
+  description: string;
+  priority: Priority;
+  deadline: string;
+  estimatedTime: number;
+}
 
 interface GenerativeTaskModalProps {
   opened: boolean;
@@ -23,7 +40,69 @@ interface GenerativeTaskModalProps {
   initialPriority: Priority;
   initialAssignees: string[];
   initialDeadline: Date | null;
+  projectName?: string;
 }
+
+// Hàm generate tasks mockdata
+export const generateTasksForProject = (projectName?: string): GeneratedTask[] => {
+  const mockTasks: GeneratedTask[] = [
+    {
+      id: "gen-task-1",
+      name: "Setup Project Infrastructure",
+      description: "Initialize repository, setup CI/CD pipeline, configure development environment",
+      priority: Priority.HIGH,
+      deadline: dayjs().add(3, "day").toISOString(),
+      estimatedTime: 8,
+    },
+    {
+      id: "gen-task-2",
+      name: "Design Database Schema",
+      description: "Create ERD, define tables, relationships, and indexes",
+      priority: Priority.HIGH,
+      deadline: dayjs().add(5, "day").toISOString(),
+      estimatedTime: 6,
+    },
+    {
+      id: "gen-task-3",
+      name: "Implement Authentication System",
+      description: "Setup JWT authentication, user login/register, password recovery",
+      priority: Priority.MEDIUM,
+      deadline: dayjs().add(7, "day").toISOString(),
+      estimatedTime: 10,
+    },
+    {
+      id: "gen-task-4",
+      name: "Create API Endpoints",
+      description: "Develop RESTful APIs for all core features",
+      priority: Priority.MEDIUM,
+      deadline: dayjs().add(10, "day").toISOString(),
+      estimatedTime: 12,
+    },
+    {
+      id: "gen-task-5",
+      name: "Build Frontend Components",
+      description: "Develop reusable UI components and pages",
+      priority: Priority.LOW,
+      deadline: dayjs().add(14, "day").toISOString(),
+      estimatedTime: 15,
+    },
+  ];
+
+  return mockTasks;
+};
+
+const getPriorityColor = (priority: Priority) => {
+  switch (priority) {
+    case Priority.HIGH:
+      return "red";
+    case Priority.MEDIUM:
+      return "yellow";
+    case Priority.LOW:
+      return "green";
+    default:
+      return "gray";
+  }
+};
 
 export default function GenerativeTaskModal({
   opened,
@@ -34,12 +113,18 @@ export default function GenerativeTaskModal({
   initialPriority,
   initialAssignees,
   initialDeadline,
+  projectName,
 }: GenerativeTaskModalProps) {
   const [title, setTitle] = useState(initialTitle);
   const [description, setDescription] = useState(initialDescription);
   const [priority, setPriority] = useState<Priority>(initialPriority);
   const [assignees, setAssignees] = useState<string[]>(initialAssignees);
   const [deadline, setDeadline] = useState<Date | null>(initialDeadline);
+
+   // State cho generative 
+   const [showGeneratedTasks, setShowGeneratedTasks] = useState(false);
+   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
+   const [selectedTask, setSelectedTask] = useState<GeneratedTask | null>(null);
 
   useEffect(() => {
     setTitle(initialTitle);
@@ -55,6 +140,35 @@ export default function GenerativeTaskModal({
     initialDeadline,
   ]);
 
+  // Hàm generate tasks
+  const handleGenerateTasks = () => {
+    const tasks = generateTasksForProject(projectName);
+    setGeneratedTasks(tasks);
+    setShowGeneratedTasks(true);
+    
+    notifications.show({
+      title: "✨ Tasks Generated",
+      message: `${tasks.length} tasks have been generated successfully!`,
+      color: "blue",
+    });
+  };
+
+  // Hàm select task từ generated list
+  const handleSelectTask = (task: GeneratedTask) => {
+    setTitle(task.name);
+    setDescription(task.description);
+    setPriority(task.priority);
+    setDeadline(dayjs(task.deadline).toDate());
+    setSelectedTask(task);
+    setShowGeneratedTasks(false);
+    
+    notifications.show({
+      title: "Task Selected",
+      message: "Task details have been populated",
+      color: "green",
+    });
+  };
+
   return (
     <Modal
       opened={opened}
@@ -64,24 +178,81 @@ export default function GenerativeTaskModal({
           Generative Task
         </Text>
       }
-      size="xl"
+      size={showGeneratedTasks ? "xl" : "lg"}
       withOverlay={false}
       withinPortal={false}
-      // styles={{
-      //   content: {  
-      //     border: "2px solid #e2e8f0", 
-      //     borderRadius: "12px", 
-      //     boxShadow: "0 4px 20px rgba(0,0,0,0.15)", 
-      //     top: "10%",
-      //     right: "10%",
-      //     transform: "none",
-      //   },
-      // }}
        classNames={{
         content: `border-2 border-gray-300 rounded-2xl shadow-xl
                   absolute top-[10%] right-[10%] translate-x-0 translate-y-0`,
       }}
     >
+       {showGeneratedTasks ? (
+        //Danh sách tasks đã generate
+        <Box>
+          <Group justify="space-between" mb="md">
+            <Group gap="xs">
+              <IconSparkles size={20} color="#228be6" />
+              <Text fw={600}>Generated Tasks ({generatedTasks.length})</Text>
+            </Group>
+            <ActionIcon 
+              onClick={() => setShowGeneratedTasks(false)}
+              color="gray"
+            >
+              <IconX size={16} />
+            </ActionIcon>
+          </Group>
+
+          <ScrollArea h={500}>
+            <Stack gap="sm">
+              {generatedTasks.map((task) => (
+                <Paper
+                  key={task.id}
+                  p="md"
+                  withBorder
+                  style={{
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                  }}
+                  onClick={() => handleSelectTask(task)}
+                  className="hover:bg-blue-50"
+                >
+                  <Text fw={600} size="sm" mb={4}>
+                    {task.name}
+                  </Text>
+                  <Text size="xs" c="dimmed" lineClamp={2} mb="xs">
+                    {task.description}
+                  </Text>
+                  <Group gap="xs">
+                    <Badge
+                      size="sm"
+                      color={getPriorityColor(task.priority)}
+                      variant="light"
+                    >
+                      {task.priority}
+                    </Badge>
+                    <Badge
+                      size="sm"
+                      variant="light"
+                      leftSection={<IconClock size={12} />}
+                    >
+                      {task.estimatedTime}h
+                    </Badge>
+                    <Badge size="sm" variant="light" color="gray">
+                      {dayjs(task.deadline).format("MMM DD")}
+                    </Badge>
+                  </Group>
+                </Paper>
+              ))}
+            </Stack>
+          </ScrollArea>
+
+          <Group justify="flex-end" mt="md">
+            <Button variant="subtle" onClick={() => setShowGeneratedTasks(false)}>
+              Cancel
+            </Button>
+          </Group>
+        </Box>
+      ) : (
       <Stack gap="lg">
         <TextInput
           label="Task Title"
@@ -133,12 +304,23 @@ export default function GenerativeTaskModal({
           clearable
           size="lg"
         />
+         {selectedTask && (
+            <Paper p="sm" withBorder style={{ backgroundColor: "#f0f9ff" }}>
+              <Text size="xs" c="dimmed" mb={4}>
+                ✨ Auto-filled from generated task
+              </Text>
+              <Text size="sm" fw={500}>
+                Estimated time: {selectedTask.estimatedTime} hours
+              </Text>
+            </Paper>
+          )}
         <div className="flex justify-end">
           <Button size="lg" onClick={onPrefer}>
-            Prefer
+          Create Task
           </Button>
         </div>
       </Stack>
+        )}
     </Modal>
   );
 }
