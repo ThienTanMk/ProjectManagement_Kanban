@@ -75,6 +75,7 @@ export default function KanbanBoard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPriority, setSelectedPriority] = useState<string | null>(null);
   const [selectedAssignee, setSelectedAssignee] = useState<string | null>(null);
+  const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
   // const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [addTaskModalOpened, setAddTaskModalOpened] = useState(false);
   const [taskDetailModalOpened, setTaskDetailModalOpened] = useState(false);
@@ -88,7 +89,7 @@ export default function KanbanBoard() {
 
   const [showTeamModal, setShowTeamModal] = useState(false); // State cho modal hiển thị danh sách thành viên
   const { data: teamMembers = [], isLoading: isLoadingTeam } = useGetTeamMembers(); // Lấy danh sách thành viên
-  const { data: roleOnProject } = useGetRoleOnProject(); // Lấy vai trò (có thể dùng để kiểm tra quyền)
+  const { data: roleOnProject } = useGetRoleOnProject(); // Lấy vai trò 
 
   const columns: Column[] = useMemo(() => {
     if (statuses.length > 0) {
@@ -127,11 +128,11 @@ export default function KanbanBoard() {
         const matchesAssignee =
           !selectedAssignee ||
           task.assignees?.map((a) => a.user.id).includes(selectedAssignee);
-
+        const matchesCreator = !selectedCreator || task.ownerId === selectedCreator;
         return matchesSearch && matchesPriority && matchesAssignee;
       }),
     }));
-  }, [columns, searchTerm, selectedPriority, selectedAssignee]);
+  }, [columns, searchTerm, selectedPriority, selectedAssignee, selectedCreator]);
   const allTasks = columns.flatMap((col) => col.cards);
   const priorities = unionBy(
     allTasks.flatMap((task) => task.priority),
@@ -140,6 +141,10 @@ export default function KanbanBoard() {
   const assignees = unionBy(
     allTasks.flatMap((task) => task.assignees || []),
     (o) => o.userId
+  );
+  const creators = unionBy(
+    allTasks.flatMap((task) => task.owner ? [task.owner] : []),
+    (o) => o.id
   );
   const handleDragEnd = (result: DropResult) => {
     // Không cho phép drag & drop nếu là VIEWER
@@ -175,7 +180,7 @@ export default function KanbanBoard() {
     else if (view === "calendar") {
       const newDateKey = destination.droppableId.replace("calendar-day-", "");
       try {
-        updateTask({ id: draggableId, data: { deadline: newDateKey } }); // Sử dụng data object theo useMutation
+        updateTask({ id: draggableId, data: { deadline: newDateKey } });
       } catch (error) {
         console.error("Error updating task deadline:", error);
       }
@@ -291,9 +296,10 @@ export default function KanbanBoard() {
     setSearchTerm("");
     setSelectedPriority(null);
     setSelectedAssignee(null);
+    setSelectedCreator(null);
     // setSelectedTag(null);
   };
-  const hasActiveFilters = searchTerm || selectedPriority || selectedAssignee;
+  const hasActiveFilters = searchTerm || selectedPriority || selectedAssignee || selectedCreator;
   if (tasksLoading) {
     return (
       <Container fluid>
@@ -380,7 +386,19 @@ export default function KanbanBoard() {
             leftSection={<IconSearch size={16} />}
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.currentTarget.value)}
-            style={{ flex: 1 }}
+            style={{ flex: 0.8 }}
+          />
+          <Select
+            placeholder="Creator"
+            leftSection={<IconFilter size={16} />}
+            data={creators.map((creator) => ({
+              value: creator.id,
+              label: creator.name,
+            }))}
+            value={selectedCreator}
+            onChange={setSelectedCreator}
+            clearable
+            style={{ flex: 0.6 }}
           />
           <Select
             placeholder="Priority"
@@ -412,6 +430,7 @@ export default function KanbanBoard() {
               color="gray"
               leftSection={<IconX size={16} />}
               onClick={clearFilters}
+              style={{ flexShrink: 0 }}
             >
               Clear
             </Button>
@@ -436,6 +455,14 @@ export default function KanbanBoard() {
                 {
                   assignees.find((a) => a.userId === selectedAssignee)?.user
                     ?.name
+                }
+              </Badge>
+            )}
+            {selectedCreator && (
+              <Badge variant="light" color="violet">
+                Creator:{" "}
+                {
+                  creators.find((c) => c.id === selectedCreator)?.name
                 }
               </Badge>
             )}

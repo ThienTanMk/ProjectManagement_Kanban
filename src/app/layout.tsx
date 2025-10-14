@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 export const metadata: Metadata = {
-  title: "Kanban by Richard",
+  title: "Kanban",
 };
 import { ColorSchemeScript } from "@mantine/core";
 import { AppProvider } from "./provider";
