@@ -57,6 +57,11 @@ import {
 import { useDeleteTask, useTask, useUpdateTask } from "@/hooks/task";
 import { presignUrl, uploadFile } from "@/services/upload";
 import SubtaskTree from "./SubtaskDetail";
+import GenerativeSubtask, {
+  GeneratedSubtask,
+  generateSubtasksForTask,
+  getPriorityColor,
+} from "./GenerativeSubtask";
 import { modals } from "@mantine/modals";
 dayjs.extend(relativeTime);
 interface FileAttachment {
@@ -83,13 +88,19 @@ export default function TaskDetailModal({
   >(null);
   const [newComment, setNewComment] = useState("");
   const [commentFile, setCommentFile] = useState<File | null>(null);
-  const [activeTab, setActiveTab] = useState<"comments" | "history" | "subtasks">("comments");
+  const [activeTab, setActiveTab] = useState<
+    "comments" | "history" | "subtasks"
+  >("comments");
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editedCommentText, setEditedCommentText] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAddingComment, setIsAddingComment] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [showSubtasks, setShowSubtasks] = useState(false);
+  const [generatedSubtasks, setGeneratedSubtasks] = useState<{
+    [taskId: string]: GeneratedSubtask[];
+  }>({});
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
 
   const { data: availableUsers } = useGetAvailableUsers();
   const { data: events } = useGetEventByTaskId(taskId);
@@ -122,8 +133,8 @@ export default function TaskDetailModal({
   };
   const { data: statuses } = useGetStatuses();
 
-  // CHỈNH SỬA: Hardcoded subtasks data (giữ nguyên logic buildTree từ SubtaskTree bạn cung cấp)
-   const subtasks = useMemo(
+  // data mẫu
+  const subtasks = useMemo(
     () =>
       [
         {
@@ -161,6 +172,7 @@ export default function TaskDetailModal({
           deadline: dayjs().add(5, "day").toISOString(),
           statusId: "inprogress",
           actualTime: 4,
+          level: 3,
         },
         {
           id: "sub-child-3",
@@ -185,12 +197,13 @@ export default function TaskDetailModal({
   );
 
   const handleSubtaskClick = (subtask: Task) => {
+    // onClose();
     modals.open({
       modalId: `subtask-${subtask.id}`,
       title: (
         <Group gap="xs">
           <IconBinaryTree size={20} />
-          <Text fw={600}>Subtask Details</Text>
+          <Text fw={600}>Task Details</Text>
         </Group>
       ),
       children: (
@@ -207,6 +220,18 @@ export default function TaskDetailModal({
 
   const handleSubTask = () => {
     setShowSubtasks(!showSubtasks);
+  };
+
+  //subtasks generate
+  const handleSubtasksGenerated = (
+    taskId: string,
+    subtasks: GeneratedSubtask[]
+  ) => {
+    setGeneratedSubtasks((prev) => ({
+      ...prev,
+      [taskId]: subtasks,
+    }));
+    setExpandedTaskId(taskId);
   };
 
   const handleEdit = () => {
@@ -333,7 +358,7 @@ export default function TaskDetailModal({
           <Group gap="xs">
             <ActionIcon
               variant="subtle"
-              onClick={handleSubTask} 
+              onClick={handleSubTask}
               disabled={isEditing}
             >
               <IconBinaryTree size={18} />
@@ -358,7 +383,7 @@ export default function TaskDetailModal({
     >
       {showSubtasks ? (
         <Grid gutter="md">
-          <Grid.Col span={6}>
+          <Grid.Col span={4}>
             <Stack gap="md">
               <div>
                 {isEditing ? (
@@ -602,7 +627,7 @@ export default function TaskDetailModal({
                         leftSection={<IconBinaryTree size={16} />}
                         onClick={handleSubTask}
                       >
-                        SubTask
+                        SubTask ({subtasks.length})
                       </Button>
                       <Button
                         leftSection={<IconEdit size={16} />}
@@ -854,8 +879,9 @@ export default function TaskDetailModal({
               </Group>
             </Stack>
           </Grid.Col>
+          {/*
           <Grid.Col span={6}>
-            {/* Bên phải: Panel subtask */}
+            {/* Bên phải: Panel subtask 
             <Paper
               p="md"
               withBorder
@@ -869,16 +895,190 @@ export default function TaskDetailModal({
                       Subtasks ({subtasks.length})
                     </Text>
                   </Group>
-                <ActionIcon onClick={() => setShowSubtasks(false)} color="gray">
-                  <IconX size={16} />
-                </ActionIcon>
+                  <Group>
+                    {/* Gen Subtask Agent 
+                    <ActionIcon  color="blue" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        console.log("🔥 Generate subtasks clicked!", task);
+                        if (!task) {
+                          console.warn("Task is undefined");
+                          return;
+                        }
+                        const subtasks = generateSubtasksForTask(task.id, task.name);
+                        console.log("Generated subtasks:", subtasks);
+                        handleSubtasksGenerated(task.id, subtasks);
+                      }}>
+                      <IconSparkles size={16} />
+                    </ActionIcon>
+                    <ActionIcon onClick={() => setShowSubtasks(false)} color="gray">
+                      <IconX size={16} />
+                    </ActionIcon>
+                  </Group>
               </Group>
               <SubtaskTree
                 subtasks={subtasks}
                 onTaskClick={handleSubtaskClick}
               />
             </Paper>
-          </Grid.Col>
+          </Grid.Col> */}
+          {/* Khi có subtasks generate thì chia layout 2 cột, ngược lại 1 cột */}
+          {generatedSubtasks[task.id] ? (
+            <>
+              {/* Cột trái: subtasks thật của task */}
+              <Grid.Col span={4}>
+                <Paper
+                  p="md"
+                  withBorder
+                  h="100%"
+                  style={{ borderLeft: "1px solid #e0e0e0" }}
+                >
+                  <Group justify="space-between" mb="md">
+                    <Group gap="xs">
+                      <IconBinaryTree size={20} color="#228be6" />
+                      <Text fw={600} size="lg">
+                        Subtasks ({subtasks.length})
+                      </Text>
+                    </Group>
+                    <Group>
+                      <ActionIcon
+                        color="blue"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          if (!task) return;
+                          const subtasks = generateSubtasksForTask(
+                            task.id,
+                            task.name
+                          );
+                          handleSubtasksGenerated(task.id, subtasks);
+                        }}
+                      >
+                        <IconSparkles size={16} />
+                      </ActionIcon>
+                      <ActionIcon
+                        onClick={() => setShowSubtasks(false)}
+                        color="gray"
+                      >
+                        <IconX size={16} />
+                      </ActionIcon>
+                    </Group>
+                  </Group>
+                  <SubtaskTree
+                    subtasks={subtasks}
+                    onTaskClick={handleSubtaskClick}
+                  />
+                </Paper>
+              </Grid.Col>
+
+              {/* Cột phải: Generated Subtasks */}
+              <Grid.Col span={4}>
+                <Paper
+                  p="md"
+                  withBorder
+                  h="100%"
+                  style={{
+                    borderLeft: "1px solid #e0e0e0",
+                    backgroundColor: "var(--mantine-color-gray-0)",
+                  }}
+                >
+                  <Group justify="space-between" mb="md">
+                    <Text fw={600} size="lg" c="blue">
+                      Generated Subtasks ({generatedSubtasks[task.id].length})
+                    </Text>
+                    <ActionIcon
+                      variant="subtle"
+                      color="gray"
+                      onClick={() => setGeneratedSubtasks({})}
+                    >
+                      <IconX size={16} />
+                    </ActionIcon>
+                  </Group>
+
+                  <ScrollArea h={500}>
+                    <Stack gap="xs">
+                      {generatedSubtasks[task.id].map((sub) => (
+                        <Paper key={sub.id} p="sm" withBorder radius="md">
+                          <Text fw={600} size="sm" mb={4}>
+                            {sub.name}
+                          </Text>
+                          <Text size="xs" c="dimmed" mb="xs" lineClamp={2}>
+                            {sub.description || "No description"}
+                          </Text>
+                          <Group gap="xs">
+                            <Badge
+                              size="xs"
+                              color={getPriorityColor(sub.priority)}
+                              variant="light"
+                            >
+                              {sub.priority}
+                            </Badge>
+                            <Badge
+                              size="xs"
+                              variant="light"
+                              leftSection={<IconClock size={12} />}
+                            >
+                              {sub.estimatedTime}h
+                            </Badge>
+                            <Badge size="xs" variant="light" color="gray">
+                              {dayjs(sub.deadline).format("MMM DD")}
+                            </Badge>
+                          </Group>
+                        </Paper>
+                      ))}
+                    </Stack>
+                  </ScrollArea>
+                </Paper>
+              </Grid.Col>
+            </>
+          ) : (
+            // Nếu chưa generate thì vẫn như cũ
+            <Grid.Col span={6}>
+              <Paper
+                p="md"
+                withBorder
+                h="100%"
+                style={{ borderLeft: "1px solid #e0e0e0" }}
+              >
+                <Group justify="space-between" mb="md">
+                  <Group gap="xs">
+                    <IconBinaryTree size={20} color="#228be6" />
+                    <Text fw={600} size="lg">
+                      Subtasks ({subtasks.length})
+                    </Text>
+                  </Group>
+                  <Group>
+                    <ActionIcon
+                      color="blue"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        if (!task) return;
+                        const subtasks = generateSubtasksForTask(
+                          task.id,
+                          task.name
+                        );
+                        handleSubtasksGenerated(task.id, subtasks);
+                      }}
+                    >
+                      <IconSparkles size={16} />
+                    </ActionIcon>
+                    <ActionIcon
+                      onClick={() => setShowSubtasks(false)}
+                      color="gray"
+                    >
+                      <IconX size={16} />
+                    </ActionIcon>
+                  </Group>
+                </Group>
+                <SubtaskTree
+                  subtasks={subtasks}
+                  onTaskClick={handleSubtaskClick}
+                />
+              </Paper>
+            </Grid.Col>
+          )}
         </Grid>
       ) : (
         <Stack gap="md">
@@ -1118,7 +1318,7 @@ export default function TaskDetailModal({
                       leftSection={<IconBinaryTree size={16} />}
                       onClick={handleSubTask}
                     >
-                      SubTask
+                      SubTask ({subtasks.length})
                     </Button>
                     <Button
                       leftSection={<IconEdit size={16} />}
@@ -1126,7 +1326,6 @@ export default function TaskDetailModal({
                     >
                       Edit Task
                     </Button>
-                    <IconSparkles></IconSparkles>
                   </Group>
                 )}
               </>
