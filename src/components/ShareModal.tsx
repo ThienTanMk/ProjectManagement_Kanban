@@ -105,8 +105,6 @@ export default function ShareModal({ opened, onClose }: ShareModalProps) {
 
   const handleRemoveMember = async (userId: string) => {
     try {
-      // Note: This would need a proper API endpoint to remove team member
-      // For now, we'll show a notification that this feature is coming soon
       notifications.show({
         title: "Feature coming soon",
         message: "Remove member functionality will be available soon",
@@ -126,15 +124,16 @@ export default function ShareModal({ opened, onClose }: ShareModalProps) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
   return (
-    <Modal opened={opened} onClose={onClose} title={<Title order={2}>Share Project</Title>}  
+    <Modal opened={opened} onClose={onClose}  title={<Text fw={700} fz="xl" c="white">Share Project</Text>}
       size="900px"
       radius="md"
       shadow="xl"
       className="border border-gray-300" 
+      mb="md"
       >
       <Stack gap="lg">
         <div>
-          <Text size="lg" fw={700} mb="mb">
+          <Text size="lg" fw={700} mb="mb" mt="md">
             Invite by email
           </Text>
           <Stack gap="lg">

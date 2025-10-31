@@ -1,7 +1,6 @@
 "use client";
-import { Stack, Group, Text, Badge, Paper, ActionIcon, Tooltip } from "@mantine/core";
-import { IconChevronDown, IconChevronRight, IconClock } from "@tabler/icons-react";
-import { JSX, useState } from "react";
+import { Stack, Group, Text, Badge, Paper, Tooltip } from "@mantine/core";
+import { IconClock, IconCornerDownRight } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { Task } from "@/types/api";
 
@@ -9,45 +8,6 @@ interface SubtaskTreeProps {
   subtasks: Task[];
   onTaskClick: (task: Task) => void;
 }
-
-interface TreeNode extends Task {
-  children?: TreeNode[];
-}
-
-// Build tree structure from flat list
-const buildTree = (tasks: Task[]): TreeNode[] => {
-  const taskMap = new Map<string, TreeNode>();
-  const rootNodes: TreeNode[] = [];
-
-  // First pass: Create map of all tasks
-  tasks.forEach(task => {
-    taskMap.set(task.id, { ...task, children: [] });
-  });
-
-  // Second pass: Build tree structure
-  // TODO: Replace this logic when you have parentId from API
-  // For now, using hardcoded structure based on naming convention
-  tasks.forEach(task => {
-    const node = taskMap.get(task.id);
-    if (!node) return;
-
-    // Hardcoded logic: tasks with 'child' in id are children of 'root' tasks
-    // Replace this when you have actual parentId field
-    if (task.id.includes('child')) {
-      const parentId = task.id.replace('child', 'root').split('-').slice(0, 3).join('-');
-      const parent = taskMap.get(parentId);
-      if (parent && parent.children) {
-        parent.children.push(node);
-      } else {
-        rootNodes.push(node);
-      }
-    } else {
-      rootNodes.push(node);
-    }
-  });
-
-  return rootNodes;
-};
 
 const getPriorityColor = (priority?: string) => {
   switch (priority) {
@@ -63,108 +23,91 @@ const getPriorityColor = (priority?: string) => {
 };
 
 export default function SubtaskTree({ subtasks, onTaskClick }: SubtaskTreeProps) {
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-
-  const toggleExpand = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const tree = buildTree(subtasks);
-
-  const renderNode = (node: TreeNode, depth = 0): JSX.Element => {
-    const hasChildren = node.children && node.children.length > 0;
-    const isExpanded = expanded[node.id] || false;
-
-    return (
-      <div key={node.id} style={{ marginLeft: depth * 20 }}>
-        <Paper
-          shadow="xs"
-          p="md"
-          mb="sm"
-          withBorder
-          style={{
-            cursor: "pointer",
-            backgroundColor: depth === 0 ? "#f8f9fa" : "#ffffff",
-            borderLeft: depth > 0 ? "3px solid #228be6" : undefined,
-            transition: "all 0.2s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#e7f5ff";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = depth === 0 ? "#f8f9fa" : "#ffffff";
-          }}
-          onClick={() => onTaskClick(node)}
-        >
-          <Group justify="space-between" wrap="nowrap">
-            <Group gap="sm" style={{ flex: 1 }}>
-              {hasChildren && (
-                <ActionIcon
-                  size="sm"
-                  variant="subtle"
-                  onClick={(e) => toggleExpand(node.id, e)}
-                  color="blue"
-                >
-                  {isExpanded ? (
-                    <IconChevronDown size={16} />
-                  ) : (
-                    <IconChevronRight size={16} />
-                  )}
-                </ActionIcon>
-              )}
-              {!hasChildren && <div style={{ width: 28 }} />}
-              
-              <div style={{ flex: 1 }}>
-                <Text fw={500} size="sm" mb={4}>
-                  {node.name}
-                </Text>
-                {node.description && (
-                  <Text size="xs" c="dimmed" lineClamp={1}>
-                    {node.description}
-                  </Text>
-                )}
-              </div>
-            </Group>
-
-            <Group gap="xs" wrap="nowrap">
-              <Badge color={getPriorityColor(node.priority)} size="sm">
-                {node.priority}
-              </Badge>
-              
-              {node.deadline && (
-                <Tooltip label={`Deadline: ${dayjs(node.deadline).format("MMM D, YYYY")}`}>
-                  <Group gap={4}>
-                    <IconClock size={14} />
-                    <Text size="xs" c="dimmed">
-                      {dayjs(node.deadline).format("MMM D")}
-                    </Text>
-                  </Group>
-                </Tooltip>
-              )}
-              
-              {node.actualTime && node.actualTime > 0 && (
-                <Badge variant="light" color="blue" size="sm">
-                  {node.actualTime}h
-                </Badge>
-              )}
-            </Group>
-          </Group>
-        </Paper>
-
-        {isExpanded && hasChildren && (
-          <div style={{ marginTop: 8 }}>
-            {node.children!.map((child) => renderNode(child, depth + 1))}
-          </div>
-        )}
-      </div>
-    );
+  
+  const getTaskLevel = (task: Task, index: number) => {
+    if (task.id.includes('child')) return 1;
+    if (task.id.includes('root')) return 0;
+    
+    return 0; 
   };
 
   return (
-    <Stack gap="md">
-      {tree.length > 0 ? (
-        tree.map((node) => renderNode(node))
+    <Stack gap="sm">
+      {subtasks.length > 0 ? (
+        subtasks.map((task, index) => {
+          const level = getTaskLevel(task, index);
+          
+          return (
+            <Paper
+              key={task.id}
+              shadow="xs"
+              p="md"
+              withBorder
+              style={{
+                cursor: "pointer",
+                backgroundColor: level === 0 ?  "var(--monday-bg-tertiary)" :  "var(--monday-bg-card)",
+                marginLeft: level * 24,
+                borderLeft: level > 0 ? "3px solid var(--monday-primary)" : undefined,
+                borderColor: "var(--monday-border-primary)",
+                color: "var(--monday-text-primary)",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "var(--monday-bg-hover)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor =  level === 0
+                    ? "var(--monday-bg-tertiary)"
+                    : "var(--monday-bg-card)";
+              }}
+              onClick={() => onTaskClick(task)}
+            >
+              <Group justify="space-between" wrap="nowrap">
+                <Group gap="sm" style={{ flex: 1 }}>
+                  {/* Icon chỉ định subtask */}
+                  {level > 0 && (
+                    <IconCornerDownRight size={16} color="var(--monday-primary)" />
+                  )}
+                  {level === 0 && <div style={{ width: 16 }} />}
+                  
+                  <div style={{ flex: 1 }}>
+                    <Text fw={500} size="sm" mb={4}>
+                      {task.name}
+                    </Text>
+                    {task.description && (
+                      <Text size="xs" lineClamp={1}>
+                        {task.description}
+                      </Text>
+                    )}
+                  </div>
+                </Group>
+
+                <Group gap="xs" wrap="nowrap">
+                  <Badge color={getPriorityColor(task.priority)} size="sm">
+                    {task.priority}
+                  </Badge>
+                  
+                  {task.deadline && (
+                    <Tooltip label={`Deadline: ${dayjs(task.deadline).format("MMM D, YYYY")}`}>
+                      <Group gap={4}>
+                        <IconClock size={14} />
+                        <Text size="xs" c="dimmed">
+                          {dayjs(task.deadline).format("MMM D")}
+                        </Text>
+                      </Group>
+                    </Tooltip>
+                  )}
+                  
+                  {task.actualTime && task.actualTime > 0 && (
+                    <Badge variant="light" color="blue" size="sm">
+                      {task.actualTime}h
+                    </Badge>
+                  )}
+                </Group>
+              </Group>
+            </Paper>
+          );
+        })
       ) : (
         <Text ta="center" c="dimmed" py="xl">
           No subtasks available

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, memo } from "react";
 import {
   Paper,
   Text,
@@ -11,7 +11,7 @@ import {
   Modal,
   TextInput,
 } from "@mantine/core";
-import { Droppable, DraggableProvidedDragHandleProps } from "@hello-pangea/dnd";
+import { Droppable, Draggable } from "@hello-pangea/dnd";
 import {
   IconPlus,
   IconGripVertical,
@@ -27,17 +27,19 @@ interface Column {
   title: string;
   cards: Task[];
 }
+
 interface KanbanColumnProps {
   column: Column;
   onViewTask: (task: Task) => void;
   onAddTask: () => void;
   onDeleteColumn?: () => void;
   onRenameColumn?: (newTitle: string) => void;
-  dragHandleProps?: DraggableProvidedDragHandleProps | null;
+  dragHandleProps?: any;
   canEditTasks?: boolean;
   canDragTasks?: boolean;
 }
-export default function KanbanColumn({
+
+export default memo(function KanbanColumn({
   column,
   onViewTask,
   onAddTask,
@@ -57,11 +59,6 @@ export default function KanbanColumn({
     }
   };
 
-  const handleDelete = () => {
-    if (onDeleteColumn) {
-      onDeleteColumn();
-    }
-  };
   return (
     <>
       <Paper
@@ -69,9 +66,18 @@ export default function KanbanColumn({
         shadow="md"
         radius="md"
         p="md"
-        className="bg-gray-100 min-w-[240px] w-[240px] border border-[#e0e0e0] rounded-md shadow-sm"
+        style={{
+          backgroundColor: "var(--monday-bg-tertiary)",
+          width: "clamp(260px, 24vw, 340px)",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          flexShrink: 0,
+          transition: "width 0.3s ease",
+        }}
       >
-        <Group justify="space-between" mb="md">
+        {/* Header */}
+        <Group justify="space-between" mb="md" style={{ flexShrink: 0 }}>
           <Group gap="xs" style={{ flex: 1 }}>
             <div
               {...dragHandleProps}
@@ -107,7 +113,7 @@ export default function KanbanColumn({
                   <Menu.Item
                     leftSection={<IconTrash size={14} />}
                     color="red"
-                    onClick={handleDelete}
+                    onClick={onDeleteColumn}
                     disabled={column.cards.length > 0}
                   >
                     Delete
@@ -117,26 +123,51 @@ export default function KanbanColumn({
             )}
           </Group>
         </Group>
+      
         <Droppable droppableId={column.id}>
           {(provided) => (
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
-              className="flex flex-col gap-2 min-h-[100px]"
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+                overflowY: "auto",
+                minHeight: 0, 
+                paddingBottom: "8px",
+              }}
+              className="scrollbar-thin scrollbar-thumb-gray-400"
             >
               {column.cards.map((card, idx) => (
-                <TaskCard
+                <Draggable
                   key={card.id}
-                  card={card}
+                  draggableId={card.id}
                   index={idx}
-                  onViewTask={onViewTask}
-                  canDragTasks={canDragTasks}
-                />
+                  isDragDisabled={!canDragTasks}
+                >
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                    >
+                      <TaskCard
+                        card={card}
+                        onViewTask={onViewTask}
+                        isDragging={snapshot.isDragging}
+                      />
+                    </div>
+                  )}
+                </Draggable>
               ))}
               {provided.placeholder}
             </div>
           )}
         </Droppable>
+
+        {/* Add Task Button */}
         {canEditTasks && (
           <Button
             variant="light"
@@ -144,6 +175,7 @@ export default function KanbanColumn({
             fullWidth
             mt="md"
             onClick={onAddTask}
+            style={{ flexShrink: 0 }}
           >
             Add Task
           </Button>
@@ -186,4 +218,4 @@ export default function KanbanColumn({
       </Modal>
     </>
   );
-}
+});

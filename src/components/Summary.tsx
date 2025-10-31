@@ -412,7 +412,7 @@ const Summary: React.FC = () => {
 
 
   return (
-    <Box p="xl">
+    <Box >
       {/* HEADER SECTION */}
       <Group justify="space-between" mb="xl">
         <div>

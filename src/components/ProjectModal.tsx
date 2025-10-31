@@ -60,9 +60,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
   const [selectedTask, setSelectedTask] = useState<GeneratedTask | null>(null);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
-  const [generatedSubtasks, setGeneratedSubtasks] = useState<{
-    [taskId: string]: GeneratedSubtask[];
-  }>({});
+  const [generatedSubtasks, setGeneratedSubtasks] = useState<{[taskId: string]: GeneratedSubtask[]; }>({});
 
   const form = useForm<{
     name: string;
@@ -277,7 +275,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                   <Box
                     p="md"
                     style={{
-                      backgroundColor: "var(--mantine-color-gray-0)",
+                      backgroundColor: "var(--monday-bg-card)",
                       borderRadius: "6px",
                       border: "1px solid var(--mantine-color-gray-3)",
                     }}
@@ -360,8 +358,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                           cursor: "pointer",
                           backgroundColor:
                             selectedTask?.id === task.id
-                              ? "var(--mantine-color-blue-0)"
-                              : "white",
+                              ? "var(--mantine-color-blue-9)"
+                              : "var(--monday-bg-card)",
                           borderColor:
                             selectedTask?.id === task.id
                               ? "var(--mantine-color-blue-5)"
@@ -615,9 +613,9 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
               <Box
                 p="md"
                 style={{
-                  backgroundColor: "var(--mantine-color-gray-0)",
+                  backgroundColor: "var(--mantine-color-gray-10)",
                   borderRadius: "6px",
-                  border: "1px solid var(--mantine-color-gray-3)",
+                  border: "1px solid var(--mantine-color-gray-7)",
                 }}
               >
                 <Text size="sm" fw={500} mb="xs">

@@ -201,7 +201,9 @@ export default function ProfileScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#111322]">
+    {/* // <div className="min-h-screen bg-[#22272e] text-[#adbac7]"> */}
+
       <Container size="md" py="xl">
         <Button
           variant="subtle"
@@ -282,7 +284,7 @@ export default function ProfileScreen() {
                   {...form.getInputProps("email")}
                   styles={{
                     input: {
-                      backgroundColor: "var(--mantine-color-gray-1)",
+                      // backgroundColor: "var(--mantine-color-gray-1)",
                       cursor: "not-allowed",
                     },
                   }}

@@ -140,8 +140,8 @@ const GenerativeSubtask: React.FC<GenerativeSubtaskProps> = ({
           withBorder
           style={{
             backgroundColor: compact
-              ? "var(--mantine-color-gray-0)"
-              : "white",
+              ? "var(--monday-bg-card)"
+              : "var(--monday-bg-card)",
           }}
         >
           <Text fw={500} size={compact ? "xs" : "sm"} mb={2}>

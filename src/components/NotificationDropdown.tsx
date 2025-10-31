@@ -110,11 +110,11 @@ export default function NotificationDropdown() {
     }
   };
   return (
-    <Menu shadow="md" width={450} position="bottom-end">
+    <Menu shadow="md" width={450} position="right-start" offset={230}>
       <Group>
         <Menu.Target>
-          <ActionIcon variant="subtle" size="lg" pos="relative">
-            <IconBell size={40} />
+          <ActionIcon variant="subtle" size="lg" pos="relative" color="white">
+            <IconBell size={16} />
             {unreadCount > 0 && (
               <Badge
                 size="xs"
@@ -130,41 +130,8 @@ export default function NotificationDropdown() {
             )}
           </ActionIcon>
         </Menu.Target>
-          <ActionIcon
-          variant="subtle"
-          size="lg"
-          onClick={() => setChatOpened(true)}
-        >
-          <IconMessageChatbot size={28} />
-          </ActionIcon>
       </Group>
-
-      {/* chatbot tạm */}
-      <Drawer
-        opened={chatOpened}
-        onClose={() => setChatOpened(false)}
-        title="Chatbot"
-        position="right"
-        size="md"
-      >
-        <div style={{ height: "400px", display: "flex", flexDirection: "column" }}>
-          <div style={{ flex: 1, overflowY: "auto", border: "1px solid #ddd", padding: "8px" }}>
-            <p><b>Bot:</b> Xin chào! Tôi có thể giúp gì cho bạn?</p>
-          </div>
-          <input
-            type="text"
-            placeholder="Nhập tin nhắn..."
-            style={{
-              border: "1px solid #ccc",
-              borderRadius: "4px",
-              padding: "8px",
-              marginTop: "8px",
-            }}
-          />
-        </div>
-      </Drawer>
-
-      <Menu.Dropdown>
+      <Menu.Dropdown >
         <Group justify="space-between" p="xs" pb="sm">
           <Text size="xl" fw={600}>Notifications</Text>
           {unreadCount > 0 && (
@@ -191,8 +158,8 @@ export default function NotificationDropdown() {
                   p="sm"
                   style={{
                     backgroundColor: notification.read
-                      ? "transparent"
-                      : "var(--mantine-color-blue-0)",
+                      ? "var(--monday-bg-card)"
+                      : "var(--monday-bg-unread-noti)",
                     cursor: "pointer",
                   }}
                   onClick={() =>
@@ -227,7 +194,7 @@ export default function NotificationDropdown() {
                           </ActionIcon>
                         </Group>
                       </Group>
-                      <Text size="sm" c="dimmed" mb={4}>
+                      <Text size="sm" mb={4}>
                         {notification.message}
                       </Text>
                       <Text size="xs" c="dimmed">

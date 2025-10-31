@@ -1,9 +1,6 @@
 @import "tailwindcss";
-/* @import "tailwindcss/preflight"; */
-/* @import "tailwindcss/base"; */
-/* @import "tailwindcss/components"; */
 
-:root {
+/* :root {
   --background: #ffffff;
   --foreground: #171717;
 }
@@ -26,4 +23,479 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+} */
+
+:root {
+  /* Background Colors */
+  --monday-bg-primary: #1e233d;
+  /* --monday-bg-bg: #181b34; */
+  --monday-bg-bg: #111322;
+  --monday-bg-secondary: #292f4c;
+  --monday-bg-tertiary: #2B3058;
+  --monday-bg-hover: #323759;
+  --monday-bg-active: #3A4066;
+  --monday-bg-card: #222647;
+  --monday-sidebar-bg: #181B34;
+  --monday-modal-bg: #252849;
+  --monday-input-bg: #1E2140;
+  --monday-dropdown-bg: #2B3058;
+  --monday-table-header: #1F2347;
+  --monday-table-row-hover: #252A4D;
+  --monday-bg-temp: #141416;
+  --monday-bg-unread-noti: #4B549B;
+  
+  /* Text Colors */
+  --monday-text-primary: #FFFFFF;
+  --monday-text-secondary: #D0D4E4;
+  --monday-text-tertiary: #9699A6;
+  --monday-text-disabled: #676879;
+  --monday-text-placeholder: #7E7E8F;
+  --monday-text-subtle: #A5A5B7;
+  --monday-text-link: #6C6CFF;
+  --monday-text-link-hover: #8B8BFF;
+  
+  /* Brand Colors */
+  --monday-primary: #0073EA;
+  --monday-primary-hover: #0085FF;
+  --monday-primary-active: #0060C7;
+  --monday-secondary: #6C6CFF;
+  --monday-secondary-hover: #8B8BFF;
+  
+  /* Status Colors */
+  --monday-success: #00CA72;
+  --monday-success-hover: #00E07D;
+  --monday-warning: #FDAB3D;
+  --monday-warning-hover: #FFB952;
+  --monday-error: #E44258;
+  --monday-error-hover: #F2546D;
+  --monday-info: #579BFC;
+  --monday-info-hover: #6EACFF;
+  
+  /* Border Colors */
+  --monday-border-primary: #393D5A;
+  --monday-border-secondary: #454968;
+  --monday-border-tertiary: #525677;
+  --monday-border-hover: #5C6184;
+  --monday-border-focus: #6C6CFF;
+  --monday-divider: #2E3350;
+  
+  /* Shadows */
+  --monday-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --monday-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --monday-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5);
+  --monday-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.6);
+  --monday-shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.7);
+  --monday-shadow-dropdown: 0 6px 20px rgba(0, 0, 0, 0.5);
+  
+  /* Border Radius */
+  --monday-radius-sm: 4px;
+  --monday-radius-md: 8px;
+  --monday-radius-lg: 12px;
+  --monday-radius-xl: 16px;
+}
+
+@theme inline {
+  --color-background: var(--monday-bg-primary);
+  --color-foreground: var(--monday-text-primary);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* ============================================
+   BODY STYLING - Monday Dark Theme
+   ============================================ */
+body {
+  background-color: var(--monday-bg-primary);
+  color: var(--monday-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 
+               "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+  position: relative;
+  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+html, body {
+  height: 100%;
+  overflow: hidden; /* chặn scroll ngoài */
+}
+
+/* ============================================
+   SUBTLE PATTERN OVERLAY
+   Monday-style texture
+   ============================================ */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  
+  /* Very subtle grid pattern */
+  background-image: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.01) 2px,
+      rgba(255, 255, 255, 0.01) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.01) 2px,
+      rgba(255, 255, 255, 0.01) 4px
+    );
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* ============================================
+   ANIMATED GRADIENT ACCENTS
+   Monday-style ambient lighting
+   ============================================ */
+body::after {
+  content: '';
+  position: fixed;
+  width: 1000px;
+  height: 1000px;
+  top: -500px;
+  right: -500px;
+  background: radial-gradient(
+    circle,
+    rgba(0, 115, 234, 0.08) 0%,
+    rgba(0, 115, 234, 0.04) 30%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  z-index: 0;
+  pointer-events: none;
+  animation: monday-pulse 20s ease-in-out infinite;
+}
+
+/* Bottom-left purple accent */
+.monday-accent-glow {
+  position: fixed;
+  width: 800px;
+  height: 800px;
+  bottom: -400px;
+  left: -400px;
+  background: radial-gradient(
+    circle,
+    rgba(108, 108, 255, 0.06) 0%,
+    rgba(108, 108, 255, 0.03) 30%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  z-index: 0;
+  pointer-events: none;
+  animation: monday-pulse 25s ease-in-out infinite reverse;
+}
+
+@keyframes monday-pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translate(20px, -20px) scale(1.05);
+  }
+}
+
+/* ============================================
+   MAIN CONTENT WRAPPER
+   ============================================ */
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================
+   SCROLLBAR STYLING - Monday Style
+   ============================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--monday-bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--monday-bg-active);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--monday-border-secondary);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: var(--monday-border-tertiary);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--monday-bg-active) var(--monday-bg-primary);
+}
+
+/* ============================================
+   LINK STYLING - Monday Style
+   ============================================ */
+a {
+  color: var(--monday-text-link);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: var(--monday-text-link-hover);
+  text-decoration: underline;
+}
+
+/* ============================================
+   SELECTION STYLING
+   ============================================ */
+::selection {
+  background-color: rgba(0, 115, 234, 0.4);
+  color: #FFFFFF;
+}
+
+::-moz-selection {
+  background-color: rgba(0, 115, 234, 0.4);
+  color: #FFFFFF;
+}
+
+/* ============================================
+   FOCUS STYLES - Monday Blue Ring
+   ============================================ */
+:focus-visible {
+  outline: 2px solid var(--monday-border-focus);
+  outline-offset: 2px;
+  border-radius: var(--monday-radius-sm);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(108, 108, 255, 0.2);
+}
+
+/* ============================================
+   CODE BLOCKS - Monday Style
+   ============================================ */
+code {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+  color: var(--monday-text-primary);
+}
+
+pre {
+  background-color: var(--monday-bg-tertiary);
+  border: 1px solid var(--monday-border-primary);
+  border-radius: var(--monday-radius-md);
+  padding: 16px;
+  overflow: auto;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+/* ============================================
+   UTILITY CLASSES - Monday Style
+   ============================================ */
+.monday-card {
+  background-color: var(--monday-bg-tertiary);
+  border: 1px solid var(--monday-border-primary);
+  border-radius: var(--monday-radius-md);
+  padding: 16px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.monday-card:hover {
+  border-color: var(--monday-border-secondary);
+  box-shadow: var(--monday-shadow-md);
+  transform: translateY(-2px);
+}
+
+.monday-text-primary {
+  color: var(--monday-text-primary);
+}
+
+.monday-text-secondary {
+  color: var(--monday-text-secondary);
+}
+
+.monday-text-tertiary {
+  color: var(--monday-text-tertiary);
+}
+
+.monday-bg-primary {
+  background-color: var(--monday-bg-primary);
+}
+
+.monday-bg-secondary {
+  background-color: var(--monday-bg-secondary);
+}
+
+.monday-bg-tertiary {
+  background-color: var(--monday-bg-tertiary);
+}
+
+.monday-border {
+  border: 1px solid var(--monday-border-primary);
+}
+
+.mantine-Table-striped tr:nth-child(odd) {
+  background-color: var(--monday-bg-tertiary) !important;
+}
+
+.mantine-Table-striped tr:nth-child(even) {
+  background-color: var(--monday-bg-card) !important;
+}
+
+/* ============================================
+   SHIMMER LOADING EFFECT
+   ============================================ */
+@keyframes monday-shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.monday-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  background-size: 1000px 100%;
+  animation: monday-shimmer 2s infinite;
+}
+
+/* ============================================
+   STATUS BADGES
+   ============================================ */
+.monday-status-done {
+  background-color: rgba(0, 202, 114, 0.15);
+  color: var(--monday-success);
+  border: 1px solid rgba(0, 202, 114, 0.3);
+}
+
+.monday-status-working {
+  background-color: rgba(253, 171, 61, 0.15);
+  color: var(--monday-warning);
+  border: 1px solid rgba(253, 171, 61, 0.3);
+}
+
+.monday-status-stuck {
+  background-color: rgba(228, 66, 88, 0.15);
+  color: var(--monday-error);
+  border: 1px solid rgba(228, 66, 88, 0.3);
+}
+
+.monday-status-info {
+  background-color: rgba(87, 155, 252, 0.15);
+  color: var(--monday-info);
+  border: 1px solid rgba(87, 155, 252, 0.3);
+}
+
+/* ============================================
+   PRIORITY INDICATORS
+   ============================================ */
+.monday-priority-critical {
+  color: var(--monday-error);
+}
+
+.monday-priority-high {
+  color: #FF7A59;
+}
+
+.monday-priority-medium {
+  color: var(--monday-warning);
+}
+
+.monday-priority-low {
+  color: var(--monday-info);
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+@media (max-width: 768px) {
+  body {
+    font-size: 13px;
+  }
+  
+  body::after,
+  .monday-accent-glow {
+    width: 500px;
+    height: 500px;
+  }
+  
+  body::after {
+    top: -250px;
+    right: -250px;
+  }
+  
+  .monday-accent-glow {
+    bottom: -250px;
+    left: -250px;
+  }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+  
+  body::before,
+  body::after,
+  .monday-accent-glow {
+    display: none;
+  }
+  
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+}
+/* Tắt transitions khi đang drag */
+[data-rbd-dragging-state="dragging"] * {
+  transition: none !important;
+}
+
+/* Tối ưu performance cho dragging */
+[data-rbd-draggable-context-id] {
+  will-change: transform;
+}
+
+.custom-hover {
+  background-color: #1E213D !important;
+  color: var(--monday-bg-hover) !important;
 }

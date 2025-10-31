@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Group, Button, Text, Container, Alert } from "@mantine/core";
-import { IconShare, IconAlertCircle } from "@tabler/icons-react";
+import { Group, Button, Text, Container, Alert, Paper, Badge, Stack, Divider } from "@mantine/core";
+import { IconShare, IconAlertCircle, IconUser, IconCalendar, IconPlus } from "@tabler/icons-react";
 import KanbanBoardNew from "../components/KanbanBoardNew";
 import ShareModal from "../components/ShareModal";
 import NotificationDropdown from "../components/NotificationDropdown";
@@ -12,11 +12,12 @@ import { useProjectStore } from "../stores/projectStore";
 import { useProject } from "../hooks/project";
 import { useUserStore } from "@/stores/userStore";
 import { usePermissions } from "@/hooks/usePermissions";
+import dayjs from "dayjs";
+
 export default function KanbanScreen() {
   const router = useRouter();
   const [shareModalOpened, setShareModalOpened] = useState(false);
   const { currentProjectId } = useProjectStore();
-  const {} = useProject(currentProjectId);
   const { canShareProject } = usePermissions();
   const handleNavigateToProfile = () => {
     router.push("/profile");
@@ -36,52 +37,70 @@ export default function KanbanScreen() {
     clearUserData();
     router.push("/login");
   };
-  useEffect(() => {}, []);
+
   return (
     <AppLayout
       onLogout={handleLogout}
       onNavigateToProfile={handleNavigateToProfile}
     >
-      <Container fluid>
-        {}
+      <Container fluid px={0}>
         {currentProject && (
-          <div className="mb-6">
-            <Group justify="space-between" mb="lg">
+          <Paper
+            p="md"
+            mb="md"
+            radius="md"
+            style={{
+              backgroundColor: "var(--monday-bg-secondary)",
+              border: "1px solid var(--monday-border-primary)",
+            }}
+          >
+            <Group justify="space-between" align="center">
               <div>
-                <Text style={{fontSize: "28px"}} 
-                  fw={700}>
-                  {currentProject.name}
-                </Text>
-                {currentProject.description && (
-                  <Text size="lg" c="dimmed">
-                    {currentProject.description}
-                  </Text>
-                )}
+                <Group gap="md" align="center">
+                  <div>
+                    <Text 
+                      size="xl" 
+                      fw={700}
+                      c="var(--monday-text-primary)"
+                    >
+                      {currentProject.name}
+                    </Text>
+                    {currentProject.description && (
+                      <Text 
+                        size="sm" 
+                        c="var(--monday-text-secondary)"
+                      >
+                        {currentProject.description}
+                      </Text>
+                    )}
+                  </div>
+                </Group>
               </div>
-              <Group gap="lg" ml="md">
+
+              <Group gap="md">
+
+                
                 {canShareProject && (
                   <Button
-                    variant="outline"
-                    leftSection={<IconShare size={20} />}
+                    leftSection={<IconShare size={16} />}
                     onClick={() => setShareModalOpened(true)}
+                    size="sm"
                   >
-                    <Text size="md" fw={600}>
-                      Share Project
-                    </Text>
+                    Share
                   </Button>
                 )}
-                <NotificationDropdown />
               </Group>
             </Group>
-          </div>
+          </Paper>
         )}
 
         {!currentProjectId && !isLoading && (
           <Alert
             icon={<IconAlertCircle size={16} />}
             title="No Project Selected"
-            color="blue"
+            color="white"
             variant="light"
+            mb="md"
           >
             Please select a project from the sidebar to start managing tasks, or
             create a new project if you haven't done so.

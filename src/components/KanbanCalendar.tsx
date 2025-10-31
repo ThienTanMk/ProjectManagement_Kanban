@@ -1,5 +1,6 @@
 "use client";
 import { useState, useMemo } from "react";
+import clsx from "clsx";
 import {
   Paper,
   Text,
@@ -10,6 +11,7 @@ import {
   Box,
   Grid,
   Select,
+  Modal,
 } from "@mantine/core";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import {
@@ -26,15 +28,20 @@ interface KanbanCalendarProps {
   tasks: Task[];
   onViewTask: (task: Task) => void;
   onTaskDeadlineChange?: (taskId: string, deadline: string | null) => void;
+  onOpenAddTask?: (deadline: string | null) => void;
 }
 
 export default function KanbanCalendar({
   tasks,
   onViewTask,
   onTaskDeadlineChange,
+  onOpenAddTask,
 }: KanbanCalendarProps) {
   const [currentDate, setCurrentDate] = useState(dayjs());
   const [viewMode, setViewMode] = useState<"month" | "week">("month");
+  const [moreTasksModalOpened, setMoreTasksModalOpened] = useState(false);
+  const [selectedDayTasks, setSelectedDayTasks] = useState<Task[]>([]);
+  const [selectedDay, setSelectedDay] = useState<dayjs.Dayjs | null>(null);
 
   const daysInView = useMemo(() => {
     if (viewMode === "month") {
@@ -104,52 +111,88 @@ export default function KanbanCalendar({
     }
   };
 
+  const openMoreTasks = (day: dayjs.Dayjs, tasks: Task[]) => {
+    setSelectedDay(day);
+    setSelectedDayTasks(tasks);
+    setMoreTasksModalOpened(true);
+  };
+
   const CalendarDay = ({ day }: { day: dayjs.Dayjs }) => {
     const isInViewPeriod =
       viewMode === "month"
         ? day.month() === currentDate.month()
         : day.isSame(currentDate, "week");
+
     const dateKey = day.format("YYYY-MM-DD");
     const dayTasks = taskGroups[dateKey] || [];
+    const moreCount = dayTasks.length - 1; // số task còn lại
 
     return (
       <Droppable droppableId={`calendar-day-${dateKey}`}>
-        {(provided, snapshot) => (
-          <Paper
-            shadow="xs"
-            p="xs"
-            className={`min-h-[120px] p-2 rounded-md shadow-sm transition-all 
-                        ${snapshot.isDraggingOver ? "bg-gray-100" : "bg-white"} 
-                        ${isInViewPeriod ? "opacity-100" : "opacity-50"}`}
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-          >
-            <Text size="sm" fw={500} c={isInViewPeriod ? "black" : "dimmed"}>
-              {day.date()}
-            </Text>
-            <Stack gap="xs" mt="xs">
-              {dayTasks.map((task, index) => (
-                <Draggable key={task.id} draggableId={task.id} index={index}>
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                    >
-                      <TaskCard
-                        card={task}
-                        index={index}
-                        onViewTask={onViewTask}
-                        isCalendarView={true}
-                      />
-                    </div>
-                  )}
-                </Draggable>
-              ))}
-            </Stack>
-            {provided.placeholder}
-          </Paper>
-        )}
+        {(provided, snapshot) => {
+          const visibleTasks =
+            snapshot.isDraggingOver || snapshot.draggingFromThisWith
+              ? dayTasks
+              : dayTasks.slice(0, 1);
+
+          return (
+            <Paper
+              shadow="xs"
+              p="xs"
+              className={clsx(
+                "group relative min-h-[150px] p-2 rounded-md shadow-sm transition-all duration-200 cursor-pointer",
+                snapshot.isDraggingOver ? "bg-gray-100" : "bg-white",
+                isInViewPeriod ? "opacity-100" : "opacity-50",
+                "hover:scale-[1.03] hover:shadow-md"
+              )}
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              onClick={() => onOpenAddTask?.(day.toISOString())}
+            >
+              <Text size="sm" fw={500}>
+                {day.date()}
+              </Text>
+
+              {/* Danh sách task */}
+              <Stack gap="xs" mt="xs">
+                {visibleTasks.map((task, index) => (
+                  <Draggable key={task.id} draggableId={task.id} index={index}>
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                      >
+                        <TaskCard
+                          card={task}
+                          onViewTask={onViewTask}
+                          isCalendarView={true}
+                        />
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </Stack>
+
+              {/* Hiện thêm task nếu còn */}
+              {moreCount > 0 && (
+                <Group
+                  mt="md"
+                  onClick={(e) => {
+                    e.stopPropagation(); // Ngăn click lan lên Paper
+                    openMoreTasks(day, dayTasks);
+                  }}
+                  className="rounded-md transition-colors duration-150 px-2 py-1 cursor-pointer hover:bg-gray-600"
+                >
+                  <Text size="xs" fw={500}>
+                    Task: {moreCount} more
+                  </Text>
+                </Group>
+              )}
+            </Paper>
+          );
+        }}
       </Droppable>
     );
   };
@@ -180,7 +223,7 @@ export default function KanbanCalendar({
                       >
                         <TaskCard
                           card={task}
-                          index={index}
+                          // index={index}
                           onViewTask={onViewTask}
                           isCalendarView={true}
                         />
@@ -226,7 +269,7 @@ export default function KanbanCalendar({
       <Grid columns={7} gutter="xs">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
           <Grid.Col key={day} span={1}>
-            <Text size="xs" fw={700} ta="center" c="dimmed">
+            <Text size="xs" fw={700} ta="center">
               {day}
             </Text>
           </Grid.Col>
@@ -237,6 +280,26 @@ export default function KanbanCalendar({
           </Grid.Col>
         ))}
       </Grid>
+
+      <Modal
+        opened={moreTasksModalOpened}
+        onClose={() => setMoreTasksModalOpened(false)}
+        title={`${selectedDay?.format("MMMM DD, YYYY")} - ${
+          selectedDayTasks.length
+        } tasks`}
+        centered
+      >
+        <Stack gap="xs">
+          {selectedDayTasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              card={task}
+              onViewTask={onViewTask}
+              isCalendarView={true}
+            />
+          ))}
+        </Stack>
+      </Modal>
     </DragDropContext>
   );
 }

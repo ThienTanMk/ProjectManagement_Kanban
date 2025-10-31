@@ -87,6 +87,17 @@ export const useGetRoleOnProject = () => {
   });
 };
 
+
+export const useGetProject = (projectId: string | null) => {
+  const { uid } = useAuth();
+  return useQuery({
+    queryKey: projectKeys.detail(projectId as string, uid),
+    queryFn: () => projectApi.getProject(projectId as string),
+    enabled: !!projectId && !!uid,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
 export const useGetTeamMembers = () => {
   const { uid } = useAuth();
   const { currentProjectId } = useProjectStore();

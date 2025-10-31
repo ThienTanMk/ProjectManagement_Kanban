@@ -65,7 +65,9 @@ export default function KanbanTableView({
   onTaskStatusChange,
   statuses = [],
 }: KanbanTableViewProps) {
-  const [expandedTasks, setExpandedTasks] = useState<Record<string, boolean>>({});
+  const [expandedTasks, setExpandedTasks] = useState<Record<string, boolean>>(
+    {}
+  );
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Backlog":
@@ -187,10 +189,24 @@ export default function KanbanTableView({
   };
 
   const SubtaskRow = ({ subtask }: { subtask: Task }) => (
-    <Table.Tr className="bg-gray-50 border-l-[3px] border-l-[#228be6]">
+    <Table.Tr
+      // className="bg-gray-50 border-l-[3px] border-l-[#228be6]"
+      style={{
+        backgroundColor: "var(--monday-bg-card)",
+        borderLeft: "3px solid #0073EA",
+      }}
+    >
       <Table.Td>
         <Group gap="sm" align="center" ml={40}>
-          <Box className="w-1 h-1 rounded-full bg-[#228be6]" />
+          <Box
+            // className="w-1 h-1 rounded-full bg-[#228be6]"
+            style={{
+              width: 4,
+              height: 4,
+              borderRadius: "50%",
+              backgroundColor: "#0073EA",
+            }}
+          />
           <div>
             <Text fw={500} size="sm" c="dimmed">
               {subtask.name}
@@ -392,27 +408,38 @@ export default function KanbanTableView({
     );
   };
   return (
-    <Container fluid>
-      <div className="mb-4">
-        <Text size="lg" fw={600}>
+    <Container
+      fluid
+      className="bg-[var(--monday-bg-board)] text-[var(--monday-text-primary)]"
+      style={{
+        width: "100vw",
+        maxWidth: "100%",
+        paddingLeft: 0,
+        paddingRight: 0,
+        margin: 0,
+      }}
+    >
+      <div className="mb-4 p-1">
+        <Text size="lg" fw={600} c="var(--monday-text-primary)">
           Tasks Table View by Status
         </Text>
-        <Text size="sm" c="dimmed">
+        <Text size="sm" c="var(--monday-text-secondary)">
           {tasks.length} task{tasks.length !== 1 ? "s" : ""} total across{" "}
           {taskGroups.filter((group) => group.tasks.length > 0).length} status
           groups
         </Text>
       </div>
       <DragDropContext onDragEnd={handleDragEnd}>
-        <Stack gap="lg">
+        <Stack>
           {taskGroups.map((group) => (
             <Paper
               key={group.status}
               shadow="sm"
               p="md"
+              className="rounded-lg shadow-sm transition-all"
               style={{
-                border: `2px solid var(--mantine-color-${group.color}-3)`,
-                borderRadius: "8px",
+                backgroundColor: "var(--monday-bg-card)",
+                border: `1px solid var(--monday-border-primary)`,
               }}
             >
               <Group justify="space-between" mb="md">
@@ -425,7 +452,7 @@ export default function KanbanTableView({
                   >
                     {group.status}
                   </Badge>
-                  <Text size="sm" c="dimmed">
+                  <Text size="sm" c="var(--monday-text-secondary)">
                     {group.tasks.length} task
                     {group.tasks.length !== 1 ? "s" : ""}
                   </Text>
@@ -438,7 +465,7 @@ export default function KanbanTableView({
                     {...provided.droppableProps}
                     style={{
                       backgroundColor: snapshot.isDraggingOver
-                        ? `var(--mantine-color-${group.color}-0)`
+                        ? `var(--monday-bg-active)`
                         : "transparent",
                       borderRadius: "4px",
                       minHeight: group.tasks.length === 0 ? "60px" : "auto",
@@ -448,9 +475,15 @@ export default function KanbanTableView({
                   >
                     {group.tasks.length > 0 ? (
                       <Table
-                        striped
-                        highlightOnHover
-                        className="w-full table-fixed border-collapse"
+                        highlightOnHover={false}
+                        className="
+                          [&_thead_tr_th]:bg-[var(--monday-bg-tertiary)]
+                          [&_tbody_tr]:transition-colors
+                          [&_tbody_tr:hover]:bg-[var(--monday-bg-hover)] 
+                          [&_th]:text-[var(--monday-text-secondary)] 
+                          [&_td]:text-[var(--monday-text-primary)] 
+                          border-collapse
+                        "
                       >
                         <Table.Thead>
                           <Table.Tr>
@@ -472,6 +505,8 @@ export default function KanbanTableView({
                               groupStatus={group.status}
                             />
                           ))}
+                      {provided.placeholder}
+
                         </Table.Tbody>
                       </Table>
                     ) : (
@@ -481,21 +516,28 @@ export default function KanbanTableView({
                           textAlign: "center",
                           border: snapshot.isDraggingOver
                             ? `2px dashed var(--mantine-color-${group.color}-4)`
-                            : `1px dashed var(--mantine-color-gray-4)`,
-                          borderRadius: "4px",
+                            : `1px dashed var(--monday-border-primary)`,
+                          borderRadius: "8px",
                           backgroundColor: snapshot.isDraggingOver
-                            ? `var(--mantine-color-${group.color}-0)`
-                            : "var(--mantine-color-gray-0)",
+                            ? "var(--monday-bg-hover)"
+                            : "var(--monday-bg-card)",
                         }}
                       >
-                        <Text c="dimmed" size="sm">
+                        <Text c="var(--monday-text-secondary)" size="sm">
                           {snapshot.isDraggingOver
                             ? `Drop task here to move to ${group.status}`
                             : `No tasks in ${group.status}`}
                         </Text>
                       </Box>
                     )}
-                    {provided.placeholder}
+                    {/* <div
+                      style={{
+                        backgroundColor: "var(--monday-bg-card)",
+                        minHeight: "1px",
+                      }}
+                    >
+                      {provided.placeholder}
+                    </div> */}
                   </Box>
                 )}
               </Droppable>

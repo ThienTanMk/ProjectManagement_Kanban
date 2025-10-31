@@ -410,7 +410,6 @@ export interface Task {
   status?: Status;
   assignees?: Assignee[];
   owner?: Owner;
-  order?: number;
 }
 
 export interface Status {
