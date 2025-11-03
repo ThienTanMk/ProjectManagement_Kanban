@@ -104,7 +104,7 @@ export default function LoginScreen() {
     }
   };
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-8">
+    <div className="min-h-screen bg-[var(--monday-bg-temp))] flex items-center justify-center py-8">
       <Container size="sm" px="md">
         <Paper shadow="md" p="xl" radius="md" w={420}>
           <form onSubmit={form.onSubmit(handleLogin)}>

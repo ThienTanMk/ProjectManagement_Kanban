@@ -116,6 +116,8 @@ body {
   transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 html, body {
+  margin: 0 !important;
+  padding: 0 !important;
   height: 100%;
   overflow: hidden; /* chặn scroll ngoài */
 }

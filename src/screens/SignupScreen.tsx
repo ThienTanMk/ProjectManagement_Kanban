@@ -95,7 +95,7 @@ export default function SignupScreen() {
     }
   };
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-8">
+    <div className="min-h-screen bg-[var(--monday-bg-temp))] flex items-center justify-center py-8">
       <Container size="sm" px="md">
         <Paper shadow="md" p="xl" radius="md" maw={420}>
           <form onSubmit={form.onSubmit(handleSignup)}>
