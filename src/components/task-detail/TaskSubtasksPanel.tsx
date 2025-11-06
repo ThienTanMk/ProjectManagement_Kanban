@@ -1,9 +1,11 @@
 "use client";
 import { Paper, Group, Text, ActionIcon } from "@mantine/core";
-import { IconBinaryTree, IconSparkles, IconX } from "@tabler/icons-react";
+import { IconBinaryTree, IconPlus, IconSparkles, IconX } from "@tabler/icons-react";
 import { Task } from "@/types/api";
 import SubtaskTree from "../SubtaskDetail";
 import { generateSubtasksForTask, GeneratedSubtask } from "../GenerativeSubtask";
+import { useState } from "react";
+import { TaskAddSubtask } from "./TaskAddSubtask";
 
 interface SubtasksPanelProps {
   task: Task;
@@ -18,14 +20,38 @@ export function SubtasksPanel({
   onToggleSubtasks,
   onSubtasksGenerated,
 }: SubtasksPanelProps) {
+  const [showAddForm, setShowAddForm] = useState(false);
   const handleGenerateSubtasks = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     if (!task) return;
+    setShowAddForm(false);
     const generatedSubtasks = generateSubtasksForTask(task.id, task.name);
     onSubtasksGenerated(task.id, generatedSubtasks);
   };
+  const handleAddSubtask = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setShowAddForm(true);
+  };
 
+  const handleCloseAddForm = () => {
+    setShowAddForm(false);
+  };
+
+  const handleAddSuccess = () => {
+    setShowAddForm(false);
+  };
+
+  if (showAddForm) {
+    return (
+      <TaskAddSubtask
+        parentTaskId={task.id}
+        onClose={handleCloseAddForm}
+        onSuccess={handleAddSuccess}
+      />
+    );
+  }
   return (
     <Paper
       p="md"
@@ -42,6 +68,9 @@ export function SubtasksPanel({
         <Group>
           <ActionIcon color="blue" onClick={handleGenerateSubtasks}>
             <IconSparkles size={16} />
+          </ActionIcon>
+          <ActionIcon color="blue" onClick={handleAddSubtask}>
+            <IconPlus size={16} />
           </ActionIcon>
           <ActionIcon onClick={onToggleSubtasks} color="gray">
             <IconX size={16} />

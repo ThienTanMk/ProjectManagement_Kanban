@@ -28,13 +28,14 @@ export interface UsersOnProject {
   projectId: string;
   role: ProjectRole;
   joinedAt: Date;
+  level?: Level;
+  technologies?: string[];
 }
 
-export interface StatusTask {
+export interface TaskState {
   id: string;
   name: string;
-  color: string | null;
-  order: number;
+  position: number | null;
   projectId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -72,7 +73,7 @@ export interface Event {
   userId: string;
   createdAt: string;
   updatedAt: string;
-  taskId: string;
+  taskId: string | null;
   task?: Task;
   user?: User;
 }
@@ -94,12 +95,13 @@ export interface Invite {
 
 export interface Notification {
   id: string;
-  title: string;
-  message: string;
-  isRead: boolean;
-  createdAt: Date;
+  eventId: string;
   userId: string;
-  eventId: string | null;
+  read: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  user?: User;
+  event?: Event;
 }
 // Enums
 export enum ProjectRole {
@@ -115,6 +117,13 @@ export enum Priority {
   HIGH = "HIGH",
 }
 
+export enum Level {
+  JUNIOR = "JUNIOR",
+  MID = "MID",
+  SENIOR = "SENIOR",
+  LEAD = "LEAD",
+}
+
 export enum EventType {
   TASK_CREATED = "TASK_CREATED",
   TASK_UPDATED = "TASK_UPDATED",
@@ -122,6 +131,13 @@ export enum EventType {
   COMMENT_ADDED = "COMMENT_ADDED",
   COMMENT_UPDATED = "COMMENT_UPDATED",
   COMMENT_DELETED = "COMMENT_DELETED",
+  TASK_STATUS_UPDATED = "TASK_STATUS_UPDATED",
+  ASSIGNEE_ADDED = "ASSIGNEE_ADDED",
+  ASSIGNEE_REMOVED = "ASSIGNEE_REMOVED",
+  TAG_ADDED = "TAG_ADDED",
+  TAG_REMOVED = "TAG_REMOVED",
+  SUBTASK_ADDED = "SUBTASK_ADDED",
+  SUBTASK_REMOVED = "SUBTASK_REMOVED",
 }
 
 export interface UsersOnProject {
@@ -131,12 +147,17 @@ export interface UsersOnProject {
   userId: string;
   projectId: string;
   role: ProjectRole;
+  level?: Level;
+  technologies?: string[];
 }
 
 // DTOs based on OpenAPI Schema Components
 export interface UpdateUserDto {
   name?: string;
   avatar?: string;
+  phone?: string;
+  bio?: string;
+  email?: string;
 }
 
 export interface CreateInviteDto {
@@ -145,11 +166,15 @@ export interface CreateInviteDto {
   role?: ProjectRole;
 }
 
-export interface CreateStatusDto {
+// export interface CreateStatusDto {
+//   name: string;
+//   color?: string;
+//   order: number;
+//   projectId: string;
+// }
+export interface CreateTaskStateDto {
   name: string;
-  color?: string;
-  order: number;
-  projectId: string;
+  position?: number;
 }
 
 export interface CreateProjectDto {
@@ -167,17 +192,32 @@ export interface UpdateProjectDto {
   archived?: boolean;
 }
 
-export interface CreateTaskDto
-  extends Omit<
-    Task,
-    "id" | "createdAt" | "updatedAt" | "owner" | "status" | "assignees"
-  > {
-  assignees: string[];
+// export interface CreateTaskDto
+//   extends Omit<
+//     Task,
+//     "id" | "createdAt" | "updatedAt" | "owner" | "status" | "assignees"
+//   > {
+//   assignees: string[];
+// }
+
+export interface CreateTaskDto {
+  name: string;
+  description?: string;
+  statusId: string;
+  tagIds?: string[];
+  assignees?: string[];
+  deadline?: Date;
+  actualTime?: number;
+  complexity?: number;
+  estimatedTime?: number;
+  parentTaskId?: string;
+  priority?: Priority;
+  position?: number;
 }
 
 export interface UpdateTaskDto extends Partial<CreateTaskDto> {}
 
-export interface UpdateStatusDto {
+export interface UpdateTaskStatusDto {
   statusId: string;
 }
 
@@ -192,26 +232,66 @@ export interface UpdateTagDto {
   color?: string;
 }
 
+// export interface CreateNotificationDto {
+//   title: string;
+//   message: string;
+//   userId: string;
+//   eventId?: string;
+// }
+
 export interface CreateNotificationDto {
-  title: string;
-  message: string;
+  eventId: string;
   userId: string;
-  eventId?: string;
 }
 
+// export interface UpdateNotificationDto {
+//   title?: string;
+//   message?: string;
+//   isRead?: boolean;
+// }
 export interface UpdateNotificationDto {
-  title?: string;
-  message?: string;
-  isRead?: boolean;
+  read?: boolean;
+}
+export interface MarkReadDto {
+  read: boolean;
 }
 
 export interface CreateCommentDto {
   content: string;
   taskId: string;
+  // file?: string;
 }
 
 export interface UpdateCommentDto {
   content: string;
+  // file?: string;
+}
+
+export interface CreateSubtaskDto {
+  name: string;
+  description?: string;
+  tagIds?: string[];
+  assignees?: string[];
+  deadline?: Date;
+  actualTime?: number;
+  complexity?: number;
+  estimatedTime?: number;
+  priority?: Priority;
+  position?: number;
+}
+
+export interface CreateUserDto {
+  id: string;
+  email: string;
+  name?: string;
+  avatar?: string;
+  phone?: string;
+  bio?: string;
+}
+
+export interface UpdateTaskStateDto {
+  name?: string;
+  position?: number;
 }
 
 // Generic Types
@@ -263,8 +343,8 @@ export type TaskResponse = ApiResponse<Task>;
 export type TaskListResponse = PaginatedResponse<Task>;
 
 // Status API Types
-export type StatusResponse = ApiResponse<StatusTask>;
-export type StatusListResponse = ApiResponse<StatusTask[]>;
+export type StatusResponse = ApiResponse<TaskState>;
+export type StatusListResponse = ApiResponse<TaskState[]>;
 
 // Invite API Types
 export type InviteResponse = ApiResponse<Invite>;
@@ -326,24 +406,35 @@ export type TaskCreateResponse = ApiResponse<Task>;
 export type TaskUpdateResponse = ApiResponse<Task>;
 export type TaskDeleteResponse = ApiResponse<{ id: string }>;
 
-export interface StatusTaskCreateRequest {
+// export interface TaskStateCreateRequest {
+//   name: string;
+//   color?: string;
+//   order: number;
+//   projectId: string;
+// }
+
+// export interface TaskStateUpdateRequest {
+//   name?: string;
+//   color?: string;
+//   order?: number;
+// }
+
+export interface TaskStateCreateRequest {
   name: string;
-  color?: string;
-  order: number;
+  position?: number;
   projectId: string;
 }
 
-export interface StatusTaskUpdateRequest {
+export interface TaskStateUpdateRequest {
   name?: string;
-  color?: string;
-  order?: number;
+  position?: number;
 }
 
-export type StatusTaskResponse = ApiResponse<StatusTask>;
-export type StatusTaskListResponse = PaginatedResponse<StatusTask>;
-export type StatusTaskCreateResponse = ApiResponse<StatusTask>;
-export type StatusTaskUpdateResponse = ApiResponse<StatusTask>;
-export type StatusTaskDeleteResponse = ApiResponse<{ id: string }>;
+export type TaskStateResponse = ApiResponse<TaskState>;
+export type TaskStateListResponse = PaginatedResponse<TaskState>;
+export type TaskStateCreateResponse = ApiResponse<TaskState>;
+export type TaskStateUpdateResponse = ApiResponse<TaskState>;
+export type TaskStateDeleteResponse = ApiResponse<{ id: string }>;
 
 export interface TagsCreateRequest {
   name: string;
@@ -365,10 +456,12 @@ export type TagsDeleteResponse = ApiResponse<{ id: string }>;
 export interface CommentCreateRequest {
   content: string;
   taskId: string;
+  // file?: string;
 }
 
 export interface CommentUpdateRequest {
   content: string;
+  // file?: string;
 }
 
 export type CommentCreateResponse = ApiResponse<Comment>;
@@ -379,10 +472,18 @@ export interface AddMemberRequest {
   userId: string;
   role: ProjectRole;
 }
+export interface AddMemberDto {
+  userId: string;
+  role: ProjectRole;
+}
 
 export interface UpdateMemberRoleRequest {
   role: ProjectRole;
 }
+export interface UpdateMemberRoleDto {
+  role: ProjectRole;
+}
+
 
 export type MemberResponse = ApiResponse<UsersOnProject>;
 export type MemberListResponse = PaginatedResponse<UsersOnProject>;
@@ -401,15 +502,20 @@ export interface Task {
   description?: string;
   statusId: string;
   deadline?: string;
-  actualTime?: any;
+  actualTime?: number;
   createdAt?: string;
   updatedAt?: string;
-  priority?: string;
+  priority?: Priority;
   ownerId?: string;
   tagOnTask?: any[];
   status?: Status;
   assignees?: Assignee[];
   owner?: Owner;
+  complexity?: number;
+  estimatedTime?: number;
+  parentTaskId?: string;
+  position?: number;
+  subTasks?: Task[];
 }
 
 export interface Status {
@@ -418,6 +524,7 @@ export interface Status {
   projectId: string;
   createdAt: string;
   updatedAt: string;
+  position?: number;
 }
 
 export interface Assignee {
@@ -429,3 +536,16 @@ export interface Assignee {
 }
 
 export interface Owner extends User {}
+
+export interface EmitEvent {
+  type: EventType;
+  payload: string;
+  userId: string;
+  taskId?: string;
+}
+
+export interface MailEvent {
+  to: string;
+  subject: string;
+  content: string;
+}

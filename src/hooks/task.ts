@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { taskApi } from "../services/taskApi";
 import { useProjectStore } from "../stores/projectStore";
-import { Task, CreateTaskDto } from "../types/api";
+import { Task, CreateTaskDto, CreateSubtaskDto } from "../types/api";
 import { queryClient } from "@/services/queryClient";
 import { useAuth } from "./useAuth";
 export const taskKeys = {
@@ -14,6 +14,8 @@ export const taskKeys = {
     [...taskKeys.details(), id, uid] as const,
   byProject: (projectId: string, uid?: string) =>
     [...taskKeys.all, "project", projectId, uid] as const,
+  subtasks: (parentTaskId: string, uid?: string) =>
+    [...taskKeys.all, "subtasks", parentTaskId, uid] as const,
 };
 export const useTasksByProject = (projectId?: string) => {
   const { uid } = useAuth();
@@ -51,12 +53,42 @@ export const useCreateTask = () => {
     },
   });
 };
+// export const useUpdateTask = () => {
+//   const { currentProjectId } = useProjectStore();
+//   const { uid } = useAuth();
+//   return useMutation({
+//     mutationFn: ({ id, data }: { id: string; data: CreateTaskDto }) =>
+//       taskApi.updateTask(id, data),
+//     onSuccess: (response, variables) => {
+//       queryClient.invalidateQueries({
+//         queryKey: taskKeys.detail(variables.id, uid),
+//       });
+//       if (currentProjectId && uid) {
+//         queryClient.invalidateQueries({
+//           queryKey: taskKeys.byProject(currentProjectId, uid),
+//         });
+//       }
+//       queryClient.invalidateQueries({ queryKey: taskKeys.all });
+//     },
+//   });
+// };
 export const useUpdateTask = () => {
   const { currentProjectId } = useProjectStore();
   const { uid } = useAuth();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: CreateTaskDto }) =>
-      taskApi.updateTask(id, data),
+    mutationFn: async ({ id, data }: { id: string; data: CreateTaskDto }) => {
+      const queryKey = taskKeys.byProject(currentProjectId, uid);
+      const previousTasks = queryClient.getQueryData<Task[]>(queryKey);
+
+      if (previousTasks) {
+        const updatedTasks = previousTasks.map((task) =>
+          task.id === id ? { ...task, ...data } : task
+        );
+        queryClient.setQueryData(queryKey, updatedTasks);
+      }
+
+      return await taskApi.updateTask(id, data);
+    },
     onSuccess: (response, variables) => {
       queryClient.invalidateQueries({
         queryKey: taskKeys.detail(variables.id, uid),
@@ -67,6 +99,14 @@ export const useUpdateTask = () => {
         });
       }
       queryClient.invalidateQueries({ queryKey: taskKeys.all });
+    },
+    onError: (error, variables) => {
+      if (currentProjectId && uid) {
+        queryClient.invalidateQueries({
+          queryKey: taskKeys.byProject(currentProjectId, uid),
+        });
+      }
+      console.error("Failed to update task:", error);
     },
   });
 };
@@ -130,7 +170,7 @@ export const useUpdateTaskStatus = () => {
 
   return useMutation({
     mutationFn: async ({ id, statusId }: { id: string; statusId: string }) => {
-      // ✅ Optimistic update trước
+      // Optimistic update trước
       if (currentProjectId && uid) {
         const queryKey = taskKeys.byProject(currentProjectId, uid);
         const previousTasks = queryClient.getQueryData<Task[]>(queryKey);
@@ -143,7 +183,7 @@ export const useUpdateTaskStatus = () => {
         }
       }
 
-      // ✅ API call không await - fire and forget
+      // API call không await
       return taskApi.updateTaskStatus(id, statusId);
     },
     onSuccess: () => {
@@ -164,5 +204,29 @@ export const useUpdateTaskStatus = () => {
       }
       console.error("Failed to update task status:", error);
     },
+  });
+};
+export const useCreateSubtask = (parentTaskId: string) => {
+  const { uid } = useAuth();
+  return useMutation({
+    mutationFn: (data: CreateSubtaskDto) => taskApi.createSubtask(parentTaskId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: taskKeys.detail(parentTaskId, uid),
+      });
+      queryClient.invalidateQueries({
+        queryKey: taskKeys.subtasks(parentTaskId, uid),
+      });
+    },
+  });
+};
+
+export const useGetSubtasks = (parentTaskId: string) => {
+  const { uid } = useAuth();
+  return useQuery({
+    queryKey: taskKeys.subtasks(parentTaskId, uid),
+    queryFn: () => taskApi.getSubtasks(parentTaskId),
+    enabled: !!parentTaskId && !!uid,
+    staleTime: 5 * 60 * 1000,
   });
 };

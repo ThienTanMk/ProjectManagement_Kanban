@@ -4,6 +4,7 @@ import { Modal, Stack, Group, Divider, Button, Grid, ActionIcon, Text } from "@m
 import { IconEdit, IconTrash, IconBinaryTree } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useTask, useDeleteTask } from "@/hooks/task";
+import { useGetSubtasks, } from "@/hooks/task";
 import {
   TaskInfo,
   TaskEditForm,
@@ -30,7 +31,7 @@ export default function TaskDetailModal({
   const [generatedSubtasks, setGeneratedSubtasks] = useState<{
     [taskId: string]: GeneratedSubtask[];
   }>({});
-
+  const { data: subtasks } = useGetSubtasks(taskId);
   const { data: _task } = useTask(taskId);
   const { mutateAsync: deleteTask } = useDeleteTask();
 
@@ -41,22 +42,6 @@ export default function TaskDetailModal({
       assigneeIds: _task?.assignees?.map((a) => a.userId) || [],
     };
   }, [_task]);
-
-  // Mock subtasks data
-  const subtasks = useMemo(
-    () => [
-      {
-        id: "sub-root-1",
-        name: "Backend API Development",
-        description: "Create RESTful APIs for user management",
-        priority: "HIGH",
-        deadline: dayjs().add(3, "day").toISOString(),
-        statusId: "todo",
-        actualTime: 5,
-      },
-    ],
-    [taskId]
-  );
 
   const handleEdit = () => setIsEditing(true);
   const handleCancelEdit = () => setIsEditing(false);
@@ -121,7 +106,7 @@ export default function TaskDetailModal({
               ) : (
                 <TaskInfo
                   task={task}
-                  subtasks={subtasks}
+                  subtasks={subtasks ?? []}
                   onEdit={handleEdit}
                   onToggleSubtasks={handleSubTask}
                 />
@@ -140,7 +125,7 @@ export default function TaskDetailModal({
               <Grid.Col span={{ base: 12, md: 4 }}>
                 <SubtasksPanel
                   task={task}
-                  subtasks={subtasks}
+                  subtasks={subtasks ?? []}
                   onToggleSubtasks={() => setShowSubtasks(false)}
                   onSubtasksGenerated={handleSubtasksGenerated}
                 />
@@ -156,7 +141,7 @@ export default function TaskDetailModal({
             <Grid.Col span={{ base: 12, md: 6 }}>
               <SubtasksPanel
                 task={task}
-                subtasks={subtasks}
+                subtasks={subtasks ?? []}
                 onToggleSubtasks={() => setShowSubtasks(false)}
                 onSubtasksGenerated={handleSubtasksGenerated}
               />
@@ -174,7 +159,7 @@ export default function TaskDetailModal({
           ) : (
             <TaskInfo
               task={task}
-              subtasks={subtasks}
+              subtasks={subtasks ?? []}
               onEdit={handleEdit}
               onToggleSubtasks={handleSubTask}
             />

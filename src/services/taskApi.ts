@@ -1,4 +1,4 @@
-import { CreateTaskDto, Task, UpdateTaskDto } from "../types/api";
+import { CreateSubtaskDto, CreateTaskDto, Task, UpdateTaskDto } from "../types/api";
 import { instance } from "./axios";
 
 export const taskApi = {
@@ -30,6 +30,14 @@ export const taskApi = {
   },
   updateTaskStatus: async (id: string, statusId: string): Promise<Task> => {
     const response = await instance.patch(`/tasks/${id}/status`, { statusId });
+    return response.data;
+  },
+   createSubtask: async (parentTaskId: string, data: CreateSubtaskDto): Promise<Task> => {
+    const response = await instance.post(`/tasks/${parentTaskId}/subtasks`, data);
+    return response.data;
+  },
+  getSubtasks: async (parentTaskId: string): Promise<Task[]> => {
+    const response = await instance.get(`/tasks/${parentTaskId}/subtasks`);
     return response.data;
   },
 };

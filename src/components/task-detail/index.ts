@@ -6,6 +6,7 @@ export { HistorySection } from "./TaskHistory";
 export { SubtasksPanel } from "./TaskSubtasksPanel";
 export { GeneratedSubtasksPanel } from "./TaskGenSubtask";
 export { default as SubtaskTree } from "../SubtaskDetail";
+export { TaskAddSubtask } from "./TaskAddSubtask";
 export { 
   generateSubtasksForTask, 
   getPriorityColor,

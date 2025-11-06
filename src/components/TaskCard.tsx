@@ -3,6 +3,7 @@ import { IconClock } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { Task } from "@/types/api";
 import { memo } from "react";
+import {getPriorityColor} from "@/lib/utils";
 
 interface TaskCardProps {
   card: Task;
@@ -17,18 +18,6 @@ export default memo(function TaskCard({
   isDragging = false,
   isCalendarView = false,
 }: TaskCardProps) {
-  const getPriorityColor = (priority?: string) => {
-    switch (priority) {
-      case "HIGH":
-        return "red";
-      case "MEDIUM":
-        return "yellow";
-      case "LOW":
-        return "green";
-      default:
-        return "gray";
-    }
-  };
 
   const isDeadlinePassed = (deadline?: string) => {
     if (!deadline) return false;
@@ -73,6 +62,9 @@ export default memo(function TaskCard({
       </Card>
     );
   } 
+
+  if (card.parentTaskId) return null;
+
   return (
     <Card
       shadow={isDragging ? "xl" : "sm"}
