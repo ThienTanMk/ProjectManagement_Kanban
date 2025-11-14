@@ -85,7 +85,7 @@ export default function AddTaskModal({
         setDeadline(dayjs(initialDeadline).toDate());
       }
     }
-  }, [opened, initialDeadline , isGenerativeMode]);
+  }, [opened, initialDeadline]);
 
   return (
     <Modal

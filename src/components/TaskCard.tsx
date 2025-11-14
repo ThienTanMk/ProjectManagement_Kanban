@@ -40,6 +40,7 @@ export default memo(function TaskCard({
     return date.format("MM/DD/YYYY");
   };
   if (isCalendarView) {
+    if (card.parentTaskId) return null;
     const priorityColor = getPriorityColor(card.priority);
     return (
       <Card

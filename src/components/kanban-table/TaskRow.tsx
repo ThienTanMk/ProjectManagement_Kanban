@@ -10,7 +10,8 @@ import {
 import { Draggable } from "@hello-pangea/dnd";
 import { Task } from "@/types/api";
 import { SubtaskRow } from "./SubtaskRow";
-import { getPriorityColor, formatDeadline, getSubtasksForTask } from "./utils";
+import { getPriorityColor, formatDeadline } from "@/lib/utils";
+import { useGetSubtasks } from "@/hooks/task";
 
 interface TaskRowProps {
   task: Task;
@@ -29,7 +30,7 @@ export function TaskRow({
   onViewTask,
   onToggleExpansion,
 }: TaskRowProps) {
-  const subtasks = getSubtasksForTask(task.id);
+  const { data: subtasks = []} = useGetSubtasks(task.id);
   const hasSubtasks = subtasks.length > 0;
 
   return (

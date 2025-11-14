@@ -43,7 +43,10 @@ export const useCreateTask = () => {
   const { currentProjectId } = useProjectStore();
   const { uid } = useAuth();
   return useMutation({
-    mutationFn: (data: CreateTaskDto) => taskApi.createTask(data),
+    mutationFn: async (data: CreateTaskDto) => {
+      const res = await taskApi.createTask(data);
+      return res;
+    },
     onSuccess: (response) => {
       if (currentProjectId && uid) {
         queryClient.invalidateQueries({
@@ -211,9 +214,11 @@ export const useCreateSubtask = (parentTaskId: string) => {
   return useMutation({
     mutationFn: (data: CreateSubtaskDto) => taskApi.createSubtask(parentTaskId, data),
     onSuccess: () => {
+      // Invalidate parent task detail to refetch with new subtask
       queryClient.invalidateQueries({
         queryKey: taskKeys.detail(parentTaskId, uid),
       });
+      // Invalidate subtasks list
       queryClient.invalidateQueries({
         queryKey: taskKeys.subtasks(parentTaskId, uid),
       });

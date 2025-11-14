@@ -20,7 +20,10 @@ import dayjs from "dayjs";
 import { DateTimePicker } from "@mantine/dates";
 import { CreateTaskDto, Priority } from "@/types/api";
 import { notifications } from "@mantine/notifications";
-import { IconClock, IconSparkles, IconX } from "@tabler/icons-react";
+import { IconClock, IconSparkles, IconUser, IconX } from "@tabler/icons-react";
+import { assign } from "lodash";
+import { ta } from "zod/v4/locales";
+import { getPriorityColor } from "@/lib/utils";
 
 export interface GeneratedTask {
   id: string;
@@ -29,6 +32,7 @@ export interface GeneratedTask {
   priority: Priority;
   deadline: string;
   estimatedTime: number;
+  assigned?: string[];
 }
 
 interface GenerativeTaskModalProps {
@@ -41,6 +45,7 @@ interface GenerativeTaskModalProps {
   initialAssignees: string[];
   initialDeadline: Date | null;
   projectName?: string;
+  compact?: boolean;
 }
 
 // Hàm generate tasks mockdata
@@ -53,6 +58,7 @@ export const generateTasksForProject = (projectName?: string): GeneratedTask[] =
       priority: Priority.HIGH,
       deadline: dayjs().add(3, "day").toISOString(),
       estimatedTime: 8,
+      assigned: ["Ethan", "Fiona"],
     },
     {
       id: "gen-task-2",
@@ -61,6 +67,7 @@ export const generateTasksForProject = (projectName?: string): GeneratedTask[] =
       priority: Priority.HIGH,
       deadline: dayjs().add(5, "day").toISOString(),
       estimatedTime: 6,
+      assigned: ["Ethan", "Fiona"],
     },
     {
       id: "gen-task-3",
@@ -77,6 +84,7 @@ export const generateTasksForProject = (projectName?: string): GeneratedTask[] =
       priority: Priority.MEDIUM,
       deadline: dayjs().add(10, "day").toISOString(),
       estimatedTime: 12,
+      assigned: ["Ethan", "Fiona"],
     },
     {
       id: "gen-task-5",
@@ -85,23 +93,11 @@ export const generateTasksForProject = (projectName?: string): GeneratedTask[] =
       priority: Priority.LOW,
       deadline: dayjs().add(14, "day").toISOString(),
       estimatedTime: 15,
+      assigned: ["Ethan", "Fiona"],
     },
   ];
 
   return mockTasks;
-};
-
-const getPriorityColor = (priority: Priority) => {
-  switch (priority) {
-    case Priority.HIGH:
-      return "red";
-    case Priority.MEDIUM:
-      return "yellow";
-    case Priority.LOW:
-      return "green";
-    default:
-      return "gray";
-  }
 };
 
 export default function GenerativeTaskModal({
@@ -114,6 +110,7 @@ export default function GenerativeTaskModal({
   initialAssignees,
   initialDeadline,
   projectName,
+  compact = false,
 }: GenerativeTaskModalProps) {
   const [title, setTitle] = useState(initialTitle);
   const [description, setDescription] = useState(initialDescription);
@@ -159,6 +156,7 @@ export default function GenerativeTaskModal({
     setDescription(task.description);
     setPriority(task.priority);
     setDeadline(dayjs(task.deadline).toDate());
+    setAssignees(task.assigned || []);
     setSelectedTask(task);
     setShowGeneratedTasks(false);
     
@@ -241,6 +239,16 @@ export default function GenerativeTaskModal({
                       {dayjs(task.deadline).format("MMM DD")}
                     </Badge>
                   </Group>
+                  {task.assigned && (
+                    <Group gap="xs" mt={4}>
+                      <IconUser size={compact ? 10 : 12} stroke={1.5} />
+                      <Text size="xs" c="dimmed">
+                        {Array.isArray(task.assigned)
+                          ? task.assigned.join(", ")
+                          : task.assigned}
+                      </Text>
+                    </Group>
+                  )}
                 </Paper>
               ))}
             </Stack>

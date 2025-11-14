@@ -192,69 +192,6 @@ export default function ShareModal({ opened, onClose }: ShareModalProps) {
             </Group>
           </div>
         )}
-
-        {/* <div>
-          <Text size="sm" fw={500} mb="xs">
-            Team Members ({teamMembers?.length || 0})
-          </Text>
-          <Stack gap="xs">
-            {teamMembers && teamMembers.length > 0 ? (
-              teamMembers.map((member) => (
-                <Paper key={member.userId} p="sm" withBorder>
-                  <Group justify="space-between">
-                    <Group gap="sm">
-                      <Avatar src={member.user.avatar} size="sm" radius="xl">
-                        {member.user.name
-                          ? member.user.name[0].toUpperCase()
-                          : member.user.email[0].toUpperCase()}
-                      </Avatar>
-                      <div>
-                        <Text size="sm" fw={500}>
-                          {member.user.name || member.user.email}
-                        </Text>
-                        <Text size="xs" c="dimmed">
-                          {member.user.email}
-                        </Text>
-                      </div>
-                    </Group>
-                    <Group gap="xs">
-                      <Badge
-                        variant="light"
-                        size="sm"
-                        color={
-                          member.role === ProjectRole.OWNER
-                            ? "grape"
-                            : member.role === ProjectRole.ADMIN
-                            ? "red"
-                            : member.role === ProjectRole.MEMBER
-                            ? "blue"
-                            : "gray"
-                        }
-                      >
-                        {member.role}
-                      </Badge>
-                      {member.role !== ProjectRole.OWNER && (
-                        <ActionIcon
-                          variant="subtle"
-                          color="red"
-                          size="sm"
-                          onClick={() => handleRemoveMember(member.userId)}
-                        >
-                          <IconTrash size={14} />
-                        </ActionIcon>
-                      )}
-                    </Group>
-                  </Group>
-                </Paper>
-              ))
-            ) : (
-              <Text size="sm" c="dimmed" ta="center" py="lg">
-                No team members yet
-              </Text>
-            )}
-          </Stack>
-        </div> */}
-
         <div>
           <Text size="lg" fw={700} mb="mb">
             Invited Members ({invites?.length || 0})

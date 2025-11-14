@@ -209,41 +209,7 @@ const Summary: React.FC = () => {
       };
     });
   }, [teamMembersData, tasks, statuses]); 
-
-  const teamWorkloadDataMock: TeamMember[] = [
-    {
-      id: "1",
-      name: "John Doe",
-      avatar: "JD",
-      tasksAssigned: 12,
-      tasksCompleted: 8,
-      workloadPercentage: 75,
-    },
-    {
-      id: "2",
-      name: "Jane Smith",
-      avatar: "JS",
-      tasksAssigned: 10,
-      tasksCompleted: 9,
-      workloadPercentage: 60,
-    },
-    {
-      id: "3",
-      name: "Mike Johnson",
-      avatar: "MJ",
-      tasksAssigned: 15,
-      tasksCompleted: 5,
-      workloadPercentage: 90,
-    },
-    {
-      id: "4",
-      name: "Sarah Wilson",
-      avatar: "SW",
-      tasksAssigned: 8,
-      tasksCompleted: 7,
-      workloadPercentage: 50,
-    },
-  ];
+ 
 
   const aiInsightsData: AIInsight[] = useMemo(() => {
     const insights: AIInsight[] = [];
@@ -620,12 +586,12 @@ const Summary: React.FC = () => {
             </Group>
 
             <ScrollArea h={300}>
-              {/* {teamWorkloadData.length > 0 ? ( */}
-              {teamWorkloadDataMock.length > 0 ? (
+              {/* {teamWorkloadDataMock.length > 0 ? ( */}
+              {teamWorkloadData.length > 0 ? (
 
                 <Stack gap="md">
-                  {/* {teamWorkloadData.map((member) => ( */}
-                  {teamWorkloadDataMock.map((member) => (
+                  {/* {teamWorkloadDataMock.map((member) => ( */}
+                  {teamWorkloadData.map((member) => (
 
                     <Box key={member.id}>
                       <Group justify="space-between" mb={8}>

@@ -1,15 +1,19 @@
 "use client";
-import { Stack, TextInput, Textarea, Group, Button, ActionIcon, Text } from "@mantine/core";
+import { Stack, TextInput, Textarea, Group, Button, ActionIcon, Text, ScrollArea } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { IconFolder, IconFileText, IconCalendar, IconSparkles, IconX } from "@tabler/icons-react";
 import { ProjectForm as ProjectFormType, ProjectFormValues } from "./types";
 import { ProjectPreview } from "./ProjectPreview";
+import { GeneratedTask } from "../GenerativeTaskModal";
+import { GeneratedSubtask } from "../GenerativeSubtask";
 
 interface ProjectFormProps {
   form: ProjectFormType;
   isEditing: boolean;
   isLoading: boolean;
   showGenerative: boolean;
+  selectedTasks?: GeneratedTask[];
+  selectedSubtasks?: GeneratedSubtask[];
   onSubmit: (values: ProjectFormValues) => void;
   onCancel: () => void;
   onGenerateTasks: () => void;
@@ -21,6 +25,8 @@ export function ProjectForm({
   isEditing,
   isLoading,
   showGenerative,
+  selectedTasks = [],
+  selectedSubtasks = [],
   onSubmit,
   onCancel,
   onGenerateTasks,
@@ -87,7 +93,15 @@ export function ProjectForm({
           />
         </Group>
 
-        {form.values.name && <ProjectPreview values={form.values} />}
+        {form.values.name && (
+          <ScrollArea.Autosize mah={300}>
+          <ProjectPreview
+            values={form.values}
+            selectedTasks={selectedTasks}
+            selectedSubtasks={selectedSubtasks}
+          />
+          </ScrollArea.Autosize>
+        )}
 
         <Group justify="flex-end" gap="sm">
           <Button variant="subtle" onClick={onCancel} disabled={isLoading}>

@@ -2,7 +2,8 @@
 import { Paper, Group, Text, ActionIcon, ScrollArea, Stack, Badge } from "@mantine/core";
 import { IconX, IconClock } from "@tabler/icons-react";
 import dayjs from "dayjs";
-import { GeneratedSubtask, getPriorityColor } from "../GenerativeSubtask";
+import { GeneratedSubtask, } from "../GenerativeSubtask";
+import { getPriorityColor } from "@/lib/utils";
 
 interface GeneratedSubtasksPanelProps {
   generatedSubtasks: GeneratedSubtask[];

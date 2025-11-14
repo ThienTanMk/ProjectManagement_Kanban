@@ -2,7 +2,7 @@
 import { Table, Group, Box, Text, Badge, Menu, ActionIcon } from "@mantine/core";
 import { IconDots, IconEye } from "@tabler/icons-react";
 import { Task } from "@/types/api";
-import { getPriorityColor, formatDeadline } from "./utils";
+import { getPriorityColor, formatDeadline } from "@/lib/utils";
 
 interface SubtaskRowProps {
   subtask: Task;

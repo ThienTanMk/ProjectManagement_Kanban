@@ -483,7 +483,10 @@ export interface UpdateMemberRoleRequest {
 export interface UpdateMemberRoleDto {
   role: ProjectRole;
 }
-
+export interface UpdateMemberProfileDto {
+  level?: Level | null;
+  technologies?: string[] | null;
+}
 
 export type MemberResponse = ApiResponse<UsersOnProject>;
 export type MemberListResponse = PaginatedResponse<UsersOnProject>;
@@ -508,7 +511,7 @@ export interface Task {
   priority?: Priority;
   ownerId?: string;
   tagOnTask?: any[];
-  status?: Status;
+  status?: TaskState;
   assignees?: Assignee[];
   owner?: Owner;
   complexity?: number;

@@ -9,6 +9,7 @@ import {
 } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { Task } from "@/types/api";
+import { formatDate, getPriorityColor } from "@/lib/utils";
 
 interface TaskInfoProps {
   task: Task & { assigneeIds: string[] };
@@ -23,23 +24,6 @@ export function TaskInfo({
   onEdit,
   onToggleSubtasks,
 }: TaskInfoProps) {
-  const getPriorityColor = (priority?: string) => {
-    switch (priority) {
-      case "HIGH":
-        return "red";
-      case "MEDIUM":
-        return "yellow";
-      case "LOW":
-        return "green";
-      default:
-        return "gray";
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return dayjs(dateString).format("MMM DD, YYYY HH:mm");
-  };
-
   return (
     <>
       <Text size="xl" fw={600} mb="xs">
@@ -101,12 +85,14 @@ export function TaskInfo({
       )}
 
       <Group justify="end" mt="md">
-        <Button
-          leftSection={<IconBinaryTree size={16} />}
-          onClick={onToggleSubtasks}
-        >
-          SubTask ({subtasks.length})
-        </Button>
+        {!task.parentTaskId && (
+          <Button
+            leftSection={<IconBinaryTree size={16} />}
+            onClick={onToggleSubtasks}
+          >
+            SubTask ({subtasks?.length ?? 0})
+          </Button>
+        )}
         <Button leftSection={<IconEdit size={16} />} onClick={onEdit}>
           Edit Task
         </Button>

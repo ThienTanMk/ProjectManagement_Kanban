@@ -1,38 +1,13 @@
 @import "tailwindcss";
 
-/* :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-} */
-
 :root {
   /* Background Colors */
   --monday-bg-primary: #1e233d;
-  /* --monday-bg-bg: #181b34; */
   --monday-bg-bg: #111322;
   --monday-bg-secondary: #292f4c;
   --monday-bg-tertiary: #2B3058;
-  --monday-bg-hover: #323759;
+  --monday-bg-hover: #222647;
+  --monday-bg-card: #222647;
   --monday-bg-active: #3A4066;
   --monday-bg-card: #222647;
   --monday-sidebar-bg: #181B34;
@@ -40,7 +15,7 @@ body {
   --monday-input-bg: #1E2140;
   --monday-dropdown-bg: #2B3058;
   --monday-table-header: #1F2347;
-  --monday-table-row-hover: #252A4D;
+  --monday-table-row-hover: #222647;
   --monday-bg-temp: #141416;
   --monday-bg-unread-noti: #4B549B;
   
@@ -119,7 +94,7 @@ html, body {
   margin: 0 !important;
   padding: 0 !important;
   height: 100%;
-  overflow: hidden; /* chặn scroll ngoài */
+  overflow: hidden;
 }
 
 /* ============================================
@@ -333,6 +308,7 @@ pre code {
 
 .monday-card:hover {
   border-color: var(--monday-border-secondary);
+  background-color: var(--monday-bg-hover);
   box-shadow: var(--monday-shadow-md);
   transform: translateY(-2px);
 }
@@ -498,6 +474,32 @@ pre code {
 }
 
 .custom-hover {
-  background-color: #1E213D !important;
-  color: var(--monday-bg-hover) !important;
+  background-color: var(--monday-bg-hover) !important;
+  color: var(--monday-text-primary) !important;
+}
+
+/* Custom hover styles for inputs and selects */
+.custom-input-hover input:hover {
+  background-color: var(--monday-bg-hover) !important;
+}
+
+.custom-select-hover input:hover {
+  background-color: var(--monday-bg-hover) !important;
+}
+
+/* Fix white hover background for all Mantine inputs */
+/* .mantine-TextInput-input:hover, */
+/* .mantine-Input-input:hover  */
+.mantine-Select-input:hover,
+.mantine-MultiSelect-input:hover{
+  background-color: var(--monday-bg-hover) !important;
+}
+
+/* Fix dropdown options hover */
+.mantine-Select-option:hover,
+.mantine-MultiSelect-option:hover {
+  background-color: var(--monday-bg-hover) !important;
+}
+.mantine-Menu-item:hover {
+  background-color: var(--monday-bg-hover) !important;
 }

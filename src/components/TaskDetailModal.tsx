@@ -76,9 +76,11 @@ export default function TaskDetailModal({
         <Group justify="space-between" style={{ width: "100%" }}>
           <Text fw={600} size="xl">Task Details</Text>
           <Group gap="xs">
-            <ActionIcon variant="subtle" onClick={handleSubTask} disabled={isEditing}>
-              <IconBinaryTree size={18} />
-            </ActionIcon>
+            {!task.parentTaskId && (
+              <ActionIcon variant="subtle" onClick={handleSubTask}>
+                <IconBinaryTree size={18} />
+              </ActionIcon>
+            )}
             <ActionIcon variant="subtle" onClick={handleEdit} disabled={isEditing}>
               <IconEdit size={18} />
             </ActionIcon>

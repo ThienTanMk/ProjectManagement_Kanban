@@ -1,4 +1,4 @@
-import { Task } from '@/types/api';
+import { EventType, Task } from '@/types/api';
 import { Badge, Text } from '@mantine/core';
 import dayjs from "dayjs";
 
@@ -33,6 +33,18 @@ export const getStatusColor = (status: string) => {
       return "gray";
   }
 };
+
+export const getNotificationColor = (eventType: string) => {
+    if (eventType.includes("TASK")) return "blue";
+    if (eventType.includes("COMMENT")) return "orange";
+    if (eventType.includes("ASSIGNEE")) return "green";
+    if (eventType.includes("TAG")) return "purple";
+    return "gray";
+  };
+
+export const formatTime = (dateString: string) => {
+    return dayjs(dateString).fromNow();
+  };
 
 export const formatDate = (date?: string) =>
   date ? dayjs(date).format("MMM DD, YYYY HH:mm") : "-";

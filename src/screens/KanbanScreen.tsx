@@ -1,8 +1,24 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Group, Button, Text, Container, Alert, Paper, Badge, Stack, Divider } from "@mantine/core";
-import { IconShare, IconAlertCircle, IconUser, IconCalendar, IconPlus } from "@tabler/icons-react";
+import {
+  Group,
+  Button,
+  Text,
+  Container,
+  Alert,
+  Paper,
+  Badge,
+  Stack,
+  Divider,
+} from "@mantine/core";
+import {
+  IconShare,
+  IconAlertCircle,
+  IconUser,
+  IconCalendar,
+  IconPlus,
+} from "@tabler/icons-react";
 import KanbanBoardNew from "../components/KanbanBoardNew";
 import ShareModal from "../components/ShareModal";
 import NotificationDropdown from "../components/NotificationDropdown";
@@ -13,6 +29,7 @@ import { useProject } from "../hooks/project";
 import { useUserStore } from "@/stores/userStore";
 import { usePermissions } from "@/hooks/usePermissions";
 import dayjs from "dayjs";
+import { TaskImportExport } from "@/components/kanban-board/board-import-export";
 
 export default function KanbanScreen() {
   const router = useRouter();
@@ -58,18 +75,11 @@ export default function KanbanScreen() {
               <div>
                 <Group gap="md" align="center">
                   <div>
-                    <Text 
-                      size="xl" 
-                      fw={700}
-                      c="var(--monday-text-primary)"
-                    >
+                    <Text size="xl" fw={700} c="var(--monday-text-primary)">
                       {currentProject.name}
                     </Text>
                     {currentProject.description && (
-                      <Text 
-                        size="sm" 
-                        c="var(--monday-text-secondary)"
-                      >
+                      <Text size="sm" c="var(--monday-text-secondary)">
                         {currentProject.description}
                       </Text>
                     )}
@@ -78,8 +88,6 @@ export default function KanbanScreen() {
               </div>
 
               <Group gap="md">
-
-                
                 {canShareProject && (
                   <Button
                     leftSection={<IconShare size={16} />}
@@ -89,6 +97,7 @@ export default function KanbanScreen() {
                     Share
                   </Button>
                 )}
+                <TaskImportExport />
               </Group>
             </Group>
           </Paper>

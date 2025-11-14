@@ -6,7 +6,11 @@ import { notifications } from "@mantine/notifications";
 import { IconFolder } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useCreateProject, useUpdateProject } from "@/hooks/project";
-import { Project, ProjectCreateRequest, ProjectUpdateRequest } from "@/types/api";
+import {
+  Project,
+  ProjectCreateRequest,
+  ProjectUpdateRequest,
+} from "@/types/api";
 import { GeneratedTask, generateTasksForProject } from "./GenerativeTaskModal";
 import { GeneratedSubtask } from "./GenerativeSubtask";
 import {
@@ -35,8 +39,12 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
   const [showGenerative, setShowGenerative] = useState(false);
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
   const [selectedTask, setSelectedTask] = useState<GeneratedTask | null>(null);
-  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
-  const [generatedSubtasks, setGeneratedSubtasks] = useState<{[taskId: string]: GeneratedSubtask[]; }>({});
+  const [expandedTaskIds, setExpandedTaskIds] = useState<string[]>([]);
+  const [generatedSubtasks, setGeneratedSubtasks] = useState<{
+    [taskId: string]: GeneratedSubtask[];
+  }>({});
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [selectedSubtaskIds, setSelectedSubtaskIds] = useState<string[]>([]);
 
   const form = useForm<ProjectFormValues>({
     initialValues: {
@@ -86,8 +94,10 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
       setShowGenerative(false);
       setGeneratedTasks([]);
       setSelectedTask(null);
-      setExpandedTaskId(null);
+      setExpandedTaskIds([]);
       setGeneratedSubtasks({});
+      setSelectedTaskIds([]);
+      setSelectedSubtaskIds([]);
     }
   }, [opened, project, isEditing]);
 
@@ -113,7 +123,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
       ...prev,
       [taskId]: subtasks,
     }));
-    setExpandedTaskId(taskId);
+    setExpandedTaskIds((prev) => [...prev, taskId]);
   };
 
   const handleTaskClick = (task: GeneratedTask) => {
@@ -124,8 +134,20 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
     setShowGenerative(false);
     setGeneratedTasks([]);
     setSelectedTask(null);
-    setExpandedTaskId(null);
+    setExpandedTaskIds([]);
     setGeneratedSubtasks({});
+  };
+
+  const handleTaskSelect = (taskId: string, checked: boolean) => {
+    setSelectedTaskIds((prev) =>
+      checked ? [...prev, taskId] : prev.filter((id) => id !== taskId)
+    );
+  };
+
+  const handleSubtaskSelect = (subtaskId: string, checked: boolean) => {
+    setSelectedSubtaskIds((prev) =>
+      checked ? [...prev, subtaskId] : prev.filter((id) => id !== subtaskId)
+    );
   };
 
   const handleSubmit = async (values: ProjectFormValues) => {
@@ -167,6 +189,13 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
     }
   };
   const isLoading = createMutation.isPending || updateMutation.isPending;
+  const selectedTasks = generatedTasks.filter((t) =>
+    selectedTaskIds.includes(t.id)
+  );
+  const selectedSubtasks = Object.values(generatedSubtasks)
+    .flat()
+    .filter((s) => selectedSubtaskIds.includes(s.id));
+
   return (
     <Modal
       opened={opened}
@@ -175,7 +204,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
         <Group gap="sm">
           <IconFolder size={20} />
           <Text fw={600}>
-            {isEditing ? "Edit Project" : "Create New Project"}
+            {isEditing ? "Edit Project" : "Create Project"}
           </Text>
         </Group>
       }
@@ -186,29 +215,34 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
         <Grid gutter="md">
           {/* Cột trái: Form tạo project */}
           <Grid.Col span={4}>
-            <Stack gap="md">
-              <ProjectForm
-                form={form}
-                isEditing={isEditing}
-                isLoading={isLoading}
-                onSubmit={handleSubmit}
-                onCancel={onClose}
-                onGenerateTasks={handleGenerateTasks}
-                onCloseGenerative={handleCloseGenerative}
-                showGenerative={showGenerative}
-              />
-            </Stack>
+            <ProjectForm
+              form={form}
+              isEditing={isEditing}
+              isLoading={isLoading}
+              onSubmit={handleSubmit}
+              onCancel={onClose}
+              onGenerateTasks={handleGenerateTasks}
+              onCloseGenerative={handleCloseGenerative}
+              showGenerative={true}
+              selectedTasks={selectedTasks}
+              selectedSubtasks={selectedSubtasks}
+            />
           </Grid.Col>
 
-          {/* Cột giữa: Danh sách tasks đã generate */}
+          {/* Cột giữa: Danh sách tasks */}
           <Grid.Col span={selectedTask ? 4 : 8}>
             <GeneratedTasksList
               tasks={generatedTasks}
               selectedTask={selectedTask}
-              expandedTaskId={expandedTaskId}
+              expandedTaskIds={expandedTaskIds}
               generatedSubtasks={generatedSubtasks}
+              selectedTaskIds={selectedTaskIds}
+              selectedSubtaskIds={selectedSubtaskIds}
               onTaskClick={handleTaskClick}
               onSubtasksGenerated={handleSubtasksGenerated}
+              onTaskSelect={handleTaskSelect}
+              onSubtaskSelect={handleSubtaskSelect}
+              onExpandedTaskIdsChange={setExpandedTaskIds}
               onClose={handleCloseGenerative}
             />
           </Grid.Col>
@@ -219,6 +253,10 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
               <TaskDetailPanel
                 task={selectedTask}
                 subtasks={generatedSubtasks[selectedTask.id]}
+                selectedTaskIds={selectedTaskIds}
+                selectedSubtaskIds={selectedSubtaskIds}
+                onTaskSelect={handleTaskSelect}
+                onSubtaskSelect={handleSubtaskSelect}
                 onClose={() => setSelectedTask(null)}
               />
             </Grid.Col>
@@ -238,4 +276,5 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
     </Modal>
   );
 };
+
 export default ProjectModal;

@@ -1,9 +1,10 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { projectApi } from "../services/projectApi";
-import { ProjectCreateRequest, ProjectUpdateRequest } from "../types/api";
+import { AddMemberRequest, ProjectCreateRequest, ProjectUpdateRequest, UpdateMemberProfileDto, UpdateMemberRoleDto, UpdateMemberRoleRequest } from "../types/api";
 import { queryClient } from "@/services/queryClient";
 import { useAuth } from "./useAuth";
 import { useProjectStore } from "@/stores/projectStore";
+import { notifications } from "@mantine/notifications";
 export const projectKeys = {
   all: ["projects"] as const,
   lists: () => [...projectKeys.all, "list"] as const,
@@ -106,5 +107,113 @@ export const useGetTeamMembers = () => {
     queryFn: () => projectApi.getTeamMembers(currentProjectId as string),
     enabled: !!currentProjectId && !!uid,
     staleTime: 5 * 60 * 1000,
+  });
+};
+
+// Lấy danh sách task trong project
+export const useProjectTasks = (projectId: string | null) => {
+  const { uid } = useAuth();
+  return useQuery({
+    queryKey: ["project", projectId, "tasks"],
+    queryFn: () => projectApi.getProjectTasks(projectId as string),
+    enabled: !!projectId && !!uid,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+// Thêm thành viên vào project
+export const useAddMember = () => {
+  return useMutation({
+    mutationFn: ({ projectId, data }: { projectId: string; data: AddMemberRequest }) =>
+      projectApi.addMember(projectId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.all });
+    },
+  });
+};
+
+// Xoá thành viên khỏi project
+export const useRemoveMember = () => {
+  return useMutation({
+    mutationFn: ({ projectId, memberId }: { projectId: string; memberId: string }) =>
+      projectApi.removeMember(projectId, memberId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.all });
+    },
+  });
+};
+
+//Cập nhật vai trò của thành viên
+export const useUpdateMemberRole = () => {
+  const queryClient = useQueryClient();
+  const { currentProjectId } = useProjectStore();
+
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      memberId,
+      data,
+    }: {
+      projectId: string;
+      memberId: string;
+      data: UpdateMemberRoleDto;
+    }) => {
+      return await projectApi.updateMemberRole(projectId, memberId, data);
+    },
+    onSuccess: () => {
+      notifications.show({
+        title: 'Success',
+        message: 'Member role updated successfully',
+        color: 'green'
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['project', currentProjectId, 'members'],
+      });
+    },
+    onError: (error: any) => {
+      notifications.show({
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to update member role',
+        color: 'red'
+      });
+      throw error;
+    }
+  });
+};
+
+export const useUpdateMemberProfile = () => {
+  const queryClient = useQueryClient();
+  const { currentProjectId } = useProjectStore();
+
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      memberId,
+      data,
+    }: {
+      projectId: string;
+      memberId: string;
+      data: UpdateMemberProfileDto;
+    }) => {
+      return await projectApi.updateMemberProfile(projectId, memberId, data);
+    },
+    onSuccess: () => {
+      notifications.show({
+        title: 'Success',
+        message: 'Member profile updated successfully',
+        color: 'green'
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['project', currentProjectId, 'members'],
+      });
+    },
+    onError: (error: any) => {
+      notifications.show({
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to update member profile',
+        color: 'red'
+      });
+      throw error;
+    }
   });
 };

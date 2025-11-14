@@ -1,9 +1,5 @@
-import { createTheme, MantineColorsTuple } from '@mantine/core';
+import { createTheme, MantineColorsTuple, } from '@mantine/core';
 
-// ============================================
-// MONDAY.COM DARK THEME - MANTINE 8 COMPATIBLE
-// Fixed all CSS selector issues for Mantine v8+
-// ============================================
 export const themeMondayDark = createTheme({
   primaryColor: 'mondayBlue',
 
@@ -240,6 +236,28 @@ export const themeMondayDark = createTheme({
     },
 
     Select: {
+      styles: {
+        input: {
+          backgroundColor: '#1E2140',
+          border: '1px solid #393D5A',
+          borderRadius: '4px',
+          color: '#FFFFFF',
+        },
+        dropdown: {
+          backgroundColor: '#2B3058',
+          border: '1px solid #393D5A',
+          borderRadius: '8px',
+          boxShadow: '0 6px 20px rgba(0, 0, 0, 0.5)',
+        },
+        option: {
+          color: '#FFFFFF',
+          borderRadius: '4px',
+          fontSize: '14px',
+        },
+      },
+    },
+
+    MultiSelect: {
       styles: {
         input: {
           backgroundColor: '#1E2140',
