@@ -15,6 +15,11 @@ export function SubtaskRow({ subtask, onViewTask }: SubtaskRowProps) {
       style={{
         backgroundColor: "var(--monday-bg-card)",
         borderLeft: "3px solid #0073EA",
+        cursor: "pointer",
+      }}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest("button")) return;
+        onViewTask(subtask);
       }}
     >
       <Table.Td>

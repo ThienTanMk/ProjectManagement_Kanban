@@ -21,10 +21,10 @@ import {
 import { IconX, IconClock, IconCalendar, IconEdit, IconCheck } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useState } from "react";
-import { GeneratedTask } from "../GenerativeTaskModal";
+import { GeneratedTask } from "../agent/GenerativeTaskModal";
 import GenerativeSubtask, {
   GeneratedSubtask,
-} from "../GenerativeSubtask";
+} from "../agent/GenerativeSubtask";
 import { Priority } from "@/types/api";
 import { getPriorityColor } from "@/lib/utils";
 

@@ -1,9 +1,17 @@
 "use client";
 import { Paper, Group, Text, ActionIcon } from "@mantine/core";
-import { IconBinaryTree, IconPlus, IconSparkles, IconX } from "@tabler/icons-react";
+import {
+  IconBinaryTree,
+  IconPlus,
+  IconSparkles,
+  IconX,
+} from "@tabler/icons-react";
 import { Task } from "@/types/api";
 import SubtaskTree from "../SubtaskDetail";
-import { generateSubtasksForTask, GeneratedSubtask } from "../GenerativeSubtask";
+import {
+  generateSubtasksForTask,
+  GeneratedSubtask,
+} from "../agent/GenerativeSubtask";
 import { useState } from "react";
 import { TaskAddSubtask } from "./TaskAddSubtask";
 
@@ -12,6 +20,7 @@ interface SubtasksPanelProps {
   subtasks: Task[];
   onToggleSubtasks: () => void;
   onSubtasksGenerated: (taskId: string, subtasks: GeneratedSubtask[]) => void;
+  onViewSubtask?: (subtask: Task) => void;
 }
 
 export function SubtasksPanel({
@@ -19,16 +28,9 @@ export function SubtasksPanel({
   subtasks,
   onToggleSubtasks,
   onSubtasksGenerated,
+  onViewSubtask,
 }: SubtasksPanelProps) {
   const [showAddForm, setShowAddForm] = useState(false);
-  const handleGenerateSubtasks = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (!task) return;
-    setShowAddForm(false);
-    const generatedSubtasks = generateSubtasksForTask(task.id, task.name);
-    onSubtasksGenerated(task.id, generatedSubtasks);
-  };
   const handleAddSubtask = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -53,11 +55,7 @@ export function SubtasksPanel({
     );
   }
   return (
-    <Paper
-      p="md"
-      withBorder
-      h="100%"
-    >
+    <Paper p="md" withBorder h="100%">
       <Group justify="space-between" mb="md">
         <Group gap="xs">
           <IconBinaryTree size={20} color="#228be6" />
@@ -66,9 +64,6 @@ export function SubtasksPanel({
           </Text>
         </Group>
         <Group>
-          <ActionIcon color="blue" onClick={handleGenerateSubtasks}>
-            <IconSparkles size={16} />
-          </ActionIcon>
           <ActionIcon color="blue" onClick={handleAddSubtask}>
             <IconPlus size={16} />
           </ActionIcon>
@@ -77,7 +72,14 @@ export function SubtasksPanel({
           </ActionIcon>
         </Group>
       </Group>
-      <SubtaskTree subtasks={subtasks} onTaskClick={(subtask) => {}} />
+      <SubtaskTree
+        subtasks={subtasks}
+        onTaskClick={(subtask) => {
+          if (onViewSubtask) {
+            onViewSubtask(subtask);
+          }
+        }}
+      />
     </Paper>
   );
 }

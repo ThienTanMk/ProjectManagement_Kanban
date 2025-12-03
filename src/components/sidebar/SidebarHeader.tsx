@@ -1,4 +1,4 @@
-import { Box, Group, Text, ActionIcon, Stack } from "@mantine/core";
+import { Box, Group, Text, ActionIcon, Stack, Avatar } from "@mantine/core";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 
 interface SidebarHeaderProps {
@@ -14,9 +14,17 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
     <Box p="md" pb="sm">
       <Group justify="space-between" wrap="nowrap">
         {!collapsed && (
-          <Text size="lg" fw={600} c="#FFFFFF">
-            Workspaces
-          </Text>
+          <Group gap="sm" wrap="nowrap">
+            <Avatar
+              src="/image/logo.jpg"
+              alt="TaskMind Logo"
+              size="md"
+              radius="md"
+            />
+            <Text size="lg" fw={600} c="var(--monday-text-primary)">
+              TaskMind
+            </Text>
+          </Group>
         )}
 
         <Group gap={4} wrap="nowrap">

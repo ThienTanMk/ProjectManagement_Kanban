@@ -12,7 +12,7 @@ import {
 } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import dayjs from "dayjs";
-import { Task } from "@/types/api";
+import { Task, Priority } from "@/types/api";
 import { useGetAvailableUsers } from "@/hooks/user";
 import { useGetStatuses } from "@/hooks/status";
 import { useUpdateTask } from "@/hooks/task";
@@ -57,9 +57,7 @@ export function TaskEditForm({ task, onCancel, onSuccess }: TaskEditFormProps) {
       <TextInput
         label="Title"
         value={editedTask?.name || ""}
-        onChange={(e) =>
-          setEditedTask({ ...editedTask, name: e.target.value })
-        }
+        onChange={(e) => setEditedTask({ ...editedTask, name: e.target.value })}
         size="md"
       />
       <Textarea
@@ -76,7 +74,10 @@ export function TaskEditForm({ task, onCancel, onSuccess }: TaskEditFormProps) {
           label="Priority"
           value={editedTask?.priority || ""}
           onChange={(value) =>
-            setEditedTask({ ...editedTask, priority: value || "" })
+            setEditedTask({
+              ...editedTask,
+              priority: (value as Priority) || "",
+            })
           }
           data={[
             { value: "HIGH", label: "High" },
@@ -105,7 +106,9 @@ export function TaskEditForm({ task, onCancel, onSuccess }: TaskEditFormProps) {
       <MultiSelect
         label="Assignees"
         value={editedTask?.assigneeIds || []}
-        onChange={(value) => setEditedTask({ ...editedTask, assigneeIds: value })}
+        onChange={(value) =>
+          setEditedTask({ ...editedTask, assigneeIds: value })
+        }
         data={
           availableUsers?.map((user) => ({
             value: user.id,
@@ -135,7 +138,9 @@ export function TaskEditForm({ task, onCancel, onSuccess }: TaskEditFormProps) {
       <Group gap="sm">
         <DateTimePicker
           label="Deadline"
-          value={editedTask?.deadline ? dayjs(editedTask.deadline).toDate() : null}
+          value={
+            editedTask?.deadline ? dayjs(editedTask.deadline).toDate() : null
+          }
           onChange={(value) =>
             setEditedTask(
               value

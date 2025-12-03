@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { projectApi } from "../services/projectApi";
-import { AddMemberRequest, ProjectCreateRequest, ProjectUpdateRequest, UpdateMemberProfileDto, UpdateMemberRoleDto, UpdateMemberRoleRequest } from "../types/api";
+import { projectApi, updateTaskStateOrder } from "../services/projectApi";
+import {
+  AddMemberRequest,
+  ProjectCreateRequest,
+  ProjectUpdateRequest,
+  UpdateMemberProfileDto,
+  UpdateMemberRoleDto,
+  UpdateMemberRoleRequest,
+} from "../types/api";
 import { queryClient } from "@/services/queryClient";
 import { useAuth } from "./useAuth";
 import { useProjectStore } from "@/stores/projectStore";
@@ -15,8 +22,8 @@ export const projectKeys = {
     [...projectKeys.details(), id, uid] as const,
   userProjects: (uid: string | undefined) =>
     [...projectKeys.all, "user-projects", uid] as const,
-  teamMembers: (projectId: string, uid: string|undefined) =>
-    [...projectKeys.all, "team-members", projectId, uid] as const
+  teamMembers: (projectId: string, uid: string | undefined) =>
+    [...projectKeys.all, "team-members", projectId, uid] as const,
 };
 export const useProjects = (page = 1, limit = 10) => {
   const { uid } = useAuth();
@@ -88,7 +95,6 @@ export const useGetRoleOnProject = () => {
   });
 };
 
-
 export const useGetProject = (projectId: string | null) => {
   const { uid } = useAuth();
   return useQuery({
@@ -124,8 +130,13 @@ export const useProjectTasks = (projectId: string | null) => {
 // Thêm thành viên vào project
 export const useAddMember = () => {
   return useMutation({
-    mutationFn: ({ projectId, data }: { projectId: string; data: AddMemberRequest }) =>
-      projectApi.addMember(projectId, data),
+    mutationFn: ({
+      projectId,
+      data,
+    }: {
+      projectId: string;
+      data: AddMemberRequest;
+    }) => projectApi.addMember(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
     },
@@ -135,16 +146,20 @@ export const useAddMember = () => {
 // Xoá thành viên khỏi project
 export const useRemoveMember = () => {
   return useMutation({
-    mutationFn: ({ projectId, memberId }: { projectId: string; memberId: string }) =>
-      projectApi.removeMember(projectId, memberId),
+    mutationFn: ({
+      projectId,
+      memberId,
+    }: {
+      projectId: string;
+      memberId: string;
+    }) => projectApi.removeMember(projectId, memberId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
     },
   });
 };
 
-//Cập nhật vai trò của thành viên
-export const useUpdateMemberRole = () => {
+export const useUpdateMember = () => {
   const queryClient = useQueryClient();
   const { currentProjectId } = useProjectStore();
 
@@ -158,62 +173,44 @@ export const useUpdateMemberRole = () => {
       memberId: string;
       data: UpdateMemberRoleDto;
     }) => {
-      return await projectApi.updateMemberRole(projectId, memberId, data);
+      return await projectApi.updateMember(projectId, memberId, data);
     },
     onSuccess: () => {
       notifications.show({
-        title: 'Success',
-        message: 'Member role updated successfully',
-        color: 'green'
+        title: "Success",
+        message: "Member updated successfully",
+        color: "green",
       });
       queryClient.invalidateQueries({
-        queryKey: ['project', currentProjectId, 'members'],
+        queryKey: ["project", currentProjectId, "members"],
       });
     },
     onError: (error: any) => {
       notifications.show({
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to update member role',
-        color: 'red'
+        title: "Error",
+        message: error.response?.data?.message || "Failed to update member",
+        color: "red",
       });
       throw error;
-    }
+    },
   });
 };
 
-export const useUpdateMemberProfile = () => {
+export const useUpdateTaskStatesOrder = (projectId: string | null) => {
   const queryClient = useQueryClient();
-  const { currentProjectId } = useProjectStore();
+  const { uid } = useAuth();
 
   return useMutation({
-    mutationFn: async ({
-      projectId,
-      memberId,
-      data,
+    mutationFn: ({
+      stateChanges,
     }: {
-      projectId: string;
-      memberId: string;
-      data: UpdateMemberProfileDto;
-    }) => {
-      return await projectApi.updateMemberProfile(projectId, memberId, data);
-    },
+      stateChanges: { id: string; position: number }[];
+    }) => updateTaskStateOrder(projectId as string, stateChanges),
     onSuccess: () => {
-      notifications.show({
-        title: 'Success',
-        message: 'Member profile updated successfully',
-        color: 'green'
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['project', currentProjectId, 'members'],
-      });
+      // Invalidate statuses to ensure consistency
+      // queryClient.invalidateQueries({
+      //   queryKey: ["statuses", projectId, uid],
+      // });
     },
-    onError: (error: any) => {
-      notifications.show({
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to update member profile',
-        color: 'red'
-      });
-      throw error;
-    }
   });
 };

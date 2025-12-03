@@ -63,14 +63,16 @@ export function StatusGroup({
             }}
           >
             {tasks.length > 0 ? (
-              <TaskTable
-                tasks={tasks}
-                groupStatus={status}
-                expandedTasks={expandedTasks}
-                onViewTask={onViewTask}
-                onToggleExpansion={onToggleExpansion}
-                placeholder={provided.placeholder}
-              />
+              <>
+                <TaskTable
+                  tasks={tasks}
+                  groupStatus={status}
+                  expandedTasks={expandedTasks}
+                  onViewTask={onViewTask}
+                  onToggleExpansion={onToggleExpansion}
+                />
+                {provided.placeholder}
+              </>
             ) : (
               <Box
                 p="xl"

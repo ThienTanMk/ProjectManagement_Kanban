@@ -128,10 +128,10 @@ export const SidebarSearchAndActions: React.FC<
           size="sm"
           styles={{
             input: {
-              backgroundColor: "#1A1B1E", // nền input
-              border: "1px solid #2A2B2E", // viền nhẹ
-              color: "#D0D4E4", // chữ sáng
-              "::placeholder": { color: "#7E7E8F" }, // placeholder mờ
+              backgroundColor: "#1A1B1E",
+              border: "1px solid #2A2B2E",
+              color: "#D0D4E4",
+              "::placeholder": { color: "#7E7E8F" },
             },
           }}
         />

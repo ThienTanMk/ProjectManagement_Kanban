@@ -19,6 +19,11 @@ import {
   Tooltip,
   Select,
   Loader,
+  Tabs,
+  SimpleGrid,
+  RingProgress,
+  ThemeIcon,
+  Alert,
 } from "@mantine/core";
 import {
   IconCheck,
@@ -32,6 +37,10 @@ import {
   IconActivity,
   IconTarget,
   IconUsers,
+  IconCalendar,
+  IconChartLine,
+  IconTrendingUp,
+  IconTrendingDown,
 } from "@tabler/icons-react";
 import {
   PieChart,
@@ -39,6 +48,9 @@ import {
   Cell,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
+  AreaChart,
+  Area,
+  Legend,
 } from "recharts";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import dayjs from "dayjs";
@@ -46,11 +58,21 @@ import relativeTime from "dayjs/plugin/relativeTime";
 
 import { useGetStatuses } from "@/hooks/status";
 import { useCurrentProjectTasks } from "@/hooks/task";
-import { useGetTeamMembers } from "@/hooks/project"; 
+import { useGetTeamMembers } from "@/hooks/project";
+import {
+  useVelocity,
+  useProjectHealth,
+  useCompletionForecast,
+  useSprintReport,
+  useAIAnalysis,
+} from "@/hooks/performances";
+import { useProjectStore } from "@/stores/projectStore";
+import { useAuth } from "@/hooks/useAuth";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 dayjs.extend(relativeTime);
 
-// Api Gen AI
 interface AIInsight {
   id: string;
   type: "warning" | "suggestion" | "success" | "info";
@@ -59,7 +81,7 @@ interface AIInsight {
   timestamp: string;
   priority: "high" | "medium" | "low";
 }
-// dùng cho mock data
+
 interface TeamMember {
   id: string;
   name: string;
@@ -72,16 +94,48 @@ interface TeamMember {
 const Summary: React.FC = () => {
   const [timeRange, setTimeRange] = useState<string>("7days");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("overview");
+  const [sprintStart, setSprintStart] = useState<string>(
+    dayjs().subtract(14, "day").format("YYYY-MM-DD")
+  );
+  const [sprintEnd, setSprintEnd] = useState<string>(
+    dayjs().format("YYYY-MM-DD")
+  );
 
+  const { currentProjectId } = useProjectStore();
+  const { uid } = useAuth();
   const { data: statuses = [], isLoading: statusesLoading } = useGetStatuses();
   const {
     data: tasks = [],
     isLoading: tasksLoading,
     refetch: refetchTasks,
   } = useCurrentProjectTasks();
-  
+
   const { data: teamMembersData = [], isLoading: teamMembersLoading } =
     useGetTeamMembers();
+
+  const { data: velocity, isLoading: velocityLoading } = useVelocity(
+    currentProjectId || ""
+  );
+
+  const { data: health, isLoading: healthLoading } = useProjectHealth(
+    currentProjectId || ""
+  );
+
+  const { data: forecast, isLoading: forecastLoading } = useCompletionForecast(
+    currentProjectId || ""
+  );
+
+  const { data: sprintReport, isLoading: sprintLoading } = useSprintReport(
+    currentProjectId || "",
+    sprintStart,
+    sprintEnd
+  );
+
+  const { data: aiAnalysis, isLoading: aiLoading } = useAIAnalysis(
+    currentProjectId || "",
+    uid || ""
+  );
 
   const statusOverviewData = useMemo(() => {
     if (!tasks || tasks.length === 0) return [];
@@ -113,8 +167,8 @@ const Summary: React.FC = () => {
     const recentTasks = [...tasks]
       .sort(
         (a, b) =>
-          new Date(b.updatedAt || b.createdAt).getTime() -
-          new Date(a.updatedAt || a.createdAt).getTime()
+          new Date(b.updatedAt || b.createdAt || 0).getTime() -
+          new Date(a.updatedAt || a.createdAt || 0).getTime()
       )
       .slice(0, 10);
 
@@ -122,8 +176,9 @@ const Summary: React.FC = () => {
       const isNew =
         dayjs().diff(dayjs(task.createdAt), "hour") < 24 &&
         task.createdAt === task.updatedAt;
-      const isDone = statuses.find((s) => s.id === task.statusId)?.name
-        .toLowerCase()
+      const isDone = statuses
+        .find((s) => s.id === task.statusId)
+        ?.name.toLowerCase()
         .includes("done");
 
       let type: "created" | "updated" | "completed" | "assigned" = "updated";
@@ -208,155 +263,7 @@ const Summary: React.FC = () => {
         workloadPercentage,
       };
     });
-  }, [teamMembersData, tasks, statuses]); 
- 
-
-  const aiInsightsData: AIInsight[] = useMemo(() => {
-    const insights: AIInsight[] = [];
-
-    // Tasks có deadline gần
-    const upcomingDeadlines = tasks.filter((task) => {
-      if (!task.deadline) return false;
-      const daysUntil = dayjs(task.deadline).diff(dayjs(), "day");
-      return daysUntil >= 0 && daysUntil <= 2 && task.priority === "HIGH";
-    });
-
-    if (upcomingDeadlines.length > 0) {
-      insights.push({
-        id: "deadline-risk",
-        type: "warning",
-        title: "Potential Deadline Risk",
-        description: `${upcomingDeadlines.length} high-priority tasks are approaching their deadlines within 48 hours. Consider reallocating resources or adjusting timelines.`,
-        timestamp: "Just now",
-        priority: "high",
-      });
-    }
-
-    // Team workload không cân bằng
-    if (teamWorkloadData.length > 0) {
-      const maxWorkload = Math.max(
-        ...teamWorkloadData.map((m) => m.workloadPercentage)
-      );
-      const minWorkload = Math.min(
-        ...teamWorkloadData.map((m) => m.workloadPercentage)
-      );
-      const maxMember = teamWorkloadData.find(
-        (m) => m.workloadPercentage === maxWorkload
-      );
-      const minMember = teamWorkloadData.find(
-        (m) => m.workloadPercentage === minWorkload
-      );
-
-      if (maxWorkload - minWorkload > 40 && maxMember && minMember) {
-        insights.push({
-          id: "workload-balance",
-          type: "suggestion",
-          title: "Optimize Team Workload",
-          description: `${maxMember.name} has ${maxWorkload}% workload capacity while ${minMember.name} is at ${minWorkload}%. Consider redistributing tasks for better balance.`,
-          timestamp: "1 hour ago",
-          priority: "medium",
-        });
-      }
-    }
-
-    // Sprint progress
-    const totalTasks = tasks.length;
-    const completedTasks = tasks.filter((task) => {
-      const status = statuses.find((s) => s.id === task.statusId);
-      return (
-        status?.name.toLowerCase().includes("done") ||
-        status?.name.toLowerCase().includes("complete")
-      );
-    }).length;
-    const completionRate =
-      totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-
-    if (completionRate > 30) {
-      insights.push({
-        id: "sprint-progress",
-        type: "success",
-        title: "Sprint Progress On Track",
-        description: `Your team has completed ${completionRate.toFixed(1)}% of planned tasks. Based on current velocity, you're on track to complete the sprint goals.`,
-        timestamp: "2 hours ago",
-        priority: "low",
-      });
-    }
-
-    return insights;
-  }, [tasks, teamWorkloadData, statuses]);
-
-   const aiInsightsDataMock: AIInsight[] = [
-    {
-      id: "1",
-      type: "warning",
-      title: "Potential Deadline Risk",
-      description:
-        "3 high-priority tasks are approaching their deadlines within 48 hours. Consider reallocating resources or adjusting timelines.",
-      timestamp: "Just now",
-      priority: "high",
-    },
-    {
-      id: "2",
-      type: "suggestion",
-      title: "Optimize Team Workload",
-      description:
-        "Mike Johnson has 90% workload capacity while Sarah Wilson is at 50%. Consider redistributing tasks for better balance.",
-      timestamp: "1 hour ago",
-      priority: "medium",
-    },
-    {
-      id: "3",
-      type: "success",
-      title: "Sprint Progress On Track",
-      description:
-        "Your team has completed 37.5% of planned tasks. Based on current velocity, you're on track to complete the sprint goals.",
-      timestamp: "2 hours ago",
-      priority: "low",
-    },
-    {
-      id: "4",
-      type: "info",
-      title: "Dependency Alert",
-      description:
-        "Task 'Implement Authentication API' is blocking 4 other tasks. Prioritizing this task could unlock team productivity.",
-      timestamp: "3 hours ago",
-      priority: "high",
-    },
-    {
-      id: "5",
-      type: "suggestion",
-      title: "Code Review Bottleneck",
-      description:
-        "5 tasks are waiting in 'In Review' status for more than 2 days. Consider assigning more reviewers or setting review time limits.",
-      timestamp: "5 hours ago",
-      priority: "medium",
-    },
-  ];
-
-  // icon
-  const getInsightIcon = (type: AIInsight["type"]) => {
-    switch (type) {
-      case "warning":
-        return <IconAlertCircle size={20} color="#ef4444" />;
-      case "suggestion":
-        return <IconSparkles size={20} color="#3b82f6" />;
-      case "success":
-        return <IconCheck size={20} color="#10b981" />;
-      case "info":
-        return <IconBrain size={20} color="#8b5cf6" />;
-    }
-  };
-
-  const getPriorityBadgeColor = (priority: AIInsight["priority"]) => {
-    switch (priority) {
-      case "high":
-        return "red";
-      case "medium":
-        return "yellow";
-      case "low":
-        return "green";
-    }
-  };
+  }, [teamMembersData, tasks, statuses]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -376,362 +283,794 @@ const Summary: React.FC = () => {
     );
   }
 
-
   return (
-    <Box >
-      {/* HEADER SECTION */}
-      <Group justify="space-between" mb="xl">
-        <div>
-          <Title order={2}>Project Summary</Title>
-          <Text size="sm" c="dimmed" mt={4}>
-            Overview of your project's status and AI-powered insights
-          </Text>
-        </div>
-        <Group gap="sm">
-          <Select
-            value={timeRange}
-            onChange={(value) => setTimeRange(value || "7days")}
-            data={[
-              { value: "24hours", label: "Last 24 hours" },
-              { value: "7days", label: "Last 7 days" },
-              { value: "30days", label: "Last 30 days" },
-              { value: "all", label: "All time" },
-            ]}
-            w={150}
-          />
-          <Tooltip label="Refresh data">
-            <ActionIcon
-              variant="light"
-              onClick={handleRefresh}
-              loading={isRefreshing}
-            >
-              <IconRefresh size={18} />
-            </ActionIcon>
-          </Tooltip>
-        </Group>
-      </Group>
+    <Tabs
+      value={activeTab}
+      onChange={(value) => setActiveTab(value || "overview")}
+    >
+      <Tabs.List>
+        <Tabs.Tab value="overview" leftSection={<IconChartBar size={16} />}>
+          Project Overview
+        </Tabs.Tab>
+        <Tabs.Tab value="performance" leftSection={<IconChartLine size={16} />}>
+          Performance Metrics
+        </Tabs.Tab>
+        <Tabs.Tab value="sprint" leftSection={<IconCalendar size={16} />}>
+          Sprint Report
+        </Tabs.Tab>
+        <Tabs.Tab value="forecast" leftSection={<IconTarget size={16} />}>
+          Forecast
+        </Tabs.Tab>
+        <Tabs.Tab value="ai" leftSection={<IconBrain size={16} />}>
+          AI Analysis
+        </Tabs.Tab>
+      </Tabs.List>
 
-      {/* chart*/}
-      <Grid gutter="lg" mb="xl">
-        {/* status overview */}
-        <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
-          <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
-            <Group justify="space-between" mb="md">
-              <Group gap="xs">
-                <IconChartBar size={20} color="#3b82f6" />
-                <Text fw={600} size="lg">
-                  Status Overview
-                </Text>
-              </Group>
-            </Group>
-
-            {statusOverviewData.length > 0 ? (
-              <>
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={statusOverviewData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
-                      label
-                    >
-                      {statusOverviewData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-
-                <Stack gap="xs" mt="md">
-                  {statusOverviewData.map((item) => (
-                    <Group key={item.status} justify="space-between">
-                      <Group gap="xs">
-                        <Box
-                          w={12}
-                          h={12}
-                          style={{
-                            backgroundColor: item.color,
-                            borderRadius: "50%",
-                          }}
-                        />
-                        <Text size="sm">{item.status}</Text>
-                      </Group>
-                      <Badge variant="light" size="sm">
-                        {item.count}
-                      </Badge>
-                    </Group>
-                  ))}
-                </Stack>
-              </>
-            ) : (
-              <Text size="sm" c="dimmed" ta="center" py="xl">
-                No tasks available
-              </Text>
-            )}
-          </Card>
-        </Grid.Col>
-
-        {/* recent activity*/}
-        <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
-          <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
-            <Group justify="space-between" mb="md">
-              <Group gap="xs">
-                <IconActivity size={20} color="#10b981" />
-                <Text fw={600} size="lg">
-                  Recent Activity
-                </Text>
-              </Group>
-            </Group>
-
-            <ScrollArea h={300}>
-              {recentActivityData.length > 0 ? (
-                <Timeline active={-1} bulletSize={24} lineWidth={2}>
-                  {recentActivityData.map((activity) => (
-                    <Timeline.Item
-                      key={activity.id}
-                      bullet={activity.icon}
-                      title={
-                        <Text size="sm" fw={500} lineClamp={1}>
-                          {activity.taskName}
-                        </Text>
-                      }
-                    >
-                      <Text size="xs" c="dimmed" mt={4}>
-                        {activity.userName} • {activity.timestamp}
-                      </Text>
-                    </Timeline.Item>
-                  ))}
-                </Timeline>
-              ) : (
-                <Text size="sm" c="dimmed" ta="center" py="xl">
-                  No recent activities
-                </Text>
-              )}
-            </ScrollArea>
-          </Card>
-        </Grid.Col>
-
-        {/* Priority*/}
-        <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
-          <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
-            <Group justify="space-between" mb="md">
-              <Group gap="xs">
-                <IconTarget size={20} color="#f59e0b" />
-                <Text fw={600} size="lg">
-                  Priority Breakdown
-                </Text>
-              </Group>
-            </Group>
-
-            {priorityBreakdownData.length > 0 ? (
-              <>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={priorityBreakdownData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="priority" />
-                    <YAxis />
-                    <RechartsTooltip />
-                    <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-                      {priorityBreakdownData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-
-                <Stack gap="xs" mt="md">
-                  {priorityBreakdownData.map((item) => (
-                    <Group key={item.priority} justify="space-between">
-                      <Group gap="xs">
-                        <Box
-                          w={12}
-                          h={12}
-                          style={{
-                            backgroundColor: item.color,
-                            borderRadius: 4,
-                          }}
-                        />
-                        <Text size="sm">{item.priority}</Text>
-                      </Group>
-                      <Text size="sm" fw={600}>
-                        {item.count}
-                      </Text>
-                    </Group>
-                  ))}
-                </Stack>
-              </>
-            ) : (
-              <Text size="sm" c="dimmed" ta="center" py="xl">
-                No priority data available
-              </Text>
-            )}
-          </Card>
-        </Grid.Col>
-
-        {/* team */}
-        <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
-          <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
-            <Group justify="space-between" mb="md">
-              <Group gap="xs">
-                <IconUsers size={20} color="#8b5cf6" />
-                <Text fw={600} size="lg">
-                  Team Workload
-                </Text>
-              </Group>
-            </Group>
-
-            <ScrollArea h={300}>
-              {/* {teamWorkloadDataMock.length > 0 ? ( */}
-              {teamWorkloadData.length > 0 ? (
-
-                <Stack gap="md">
-                  {/* {teamWorkloadDataMock.map((member) => ( */}
-                  {teamWorkloadData.map((member) => (
-
-                    <Box key={member.id}>
-                      <Group justify="space-between" mb={8}>
-                        <Group gap="sm">
-                          <Avatar color="blue" radius="xl" size="sm">
-                            {member.avatar}
-                          </Avatar>
-                          <div>
-                            <Text size="sm" fw={500}>
-                              {member.name}
-                            </Text>
-                            <Text size="xs" c="dimmed">
-                              {member.tasksCompleted}/{member.tasksAssigned}{" "}
-                              tasks
-                            </Text>
-                          </div>
-                        </Group>
-                        <Badge
-                          color={
-                            member.workloadPercentage > 80
-                              ? "red"
-                              : member.workloadPercentage > 60
-                              ? "yellow"
-                              : "green"
-                          }
-                          variant="light"
-                          size="sm"
-                        >
-                          {member.workloadPercentage}%
-                        </Badge>
-                      </Group>
-                      <Progress
-                        value={member.workloadPercentage}
-                        color={
-                          member.workloadPercentage > 80
-                            ? "red"
-                            : member.workloadPercentage > 60
-                            ? "yellow"
-                            : "green"
-                        }
-                        size="sm"
-                        radius="xl"
-                      />
-                    </Box>
-                  ))}
-                </Stack>
-              ) : (
-                <Text size="sm" c="dimmed" ta="center" py="xl">
-                  No team members assigned
-                </Text>
-              )}
-            </ScrollArea>
-          </Card>
-        </Grid.Col>
-      </Grid>
-
-      {/* Gen AI */}
-      <Card shadow="sm" padding="xl" radius="md" withBorder>
-        <Group justify="space-between" mb="lg">
-          <Group gap="sm">
-            <IconBrain size={24} color="#8b5cf6" />
+      <Tabs.Panel value="overview" pt="xl">
+        <Box>
+          <Group justify="space-between" mb="xl">
             <div>
-              <Title order={3}>AI-Powered Insights</Title>
+              <Title order={2}>Project Summary</Title>
               <Text size="sm" c="dimmed" mt={4}>
-                Smart recommendations and analysis from Gen AI
+                Overview of your project's status and AI-powered insights
               </Text>
             </div>
-          </Group>
-          <Badge
-            size="lg"
-            variant="gradient"
-            gradient={{ from: "violet", to: "blue", deg: 90 }}
-            leftSection={<IconSparkles size={14} />}
-          >
-            {/* {aiInsightsData.length} Insights */}
-            {aiInsightsDataMock.length} Insights
-          </Badge>
-        </Group>
-
-        <Divider mb="lg" />
-
-        <ScrollArea h={400}>
-          {/* {aiInsightsData.length > 0 ? ( */}
-          {aiInsightsDataMock.length > 0 ? (
-            <Stack gap="md">
-              {/* {aiInsightsData.map((insight) => ( */}
-              {aiInsightsDataMock.map((insight) => (
-                <Paper
-                  key={insight.id}
-                  p="md"
-                  withBorder
-                  radius="md"
-                  style={{
-                    borderLeft: `4px solid ${
-                      insight.type === "warning"
-                        ? "#ef4444"
-                        : insight.type === "success"
-                        ? "#10b981"
-                        : insight.type === "suggestion"
-                        ? "#3b82f6"
-                        : "#8b5cf6"
-                    }`,
-                  }}
+            <Group gap="sm">
+              <Select
+                value={timeRange}
+                onChange={(value) => setTimeRange(value || "7days")}
+                data={[
+                  { value: "24hours", label: "Last 24 hours" },
+                  { value: "7days", label: "Last 7 days" },
+                  { value: "30days", label: "Last 30 days" },
+                  { value: "all", label: "All time" },
+                ]}
+                w={150}
+              />
+              <Tooltip label="Refresh data">
+                <ActionIcon
+                  variant="light"
+                  onClick={handleRefresh}
+                  loading={isRefreshing}
                 >
-                  <Group justify="space-between" align="flex-start" mb="sm">
-                    <Group gap="sm">
-                      {getInsightIcon(insight.type)}
-                      <div>
-                        <Text fw={600} size="sm">
-                          {insight.title}
-                        </Text>
-                        <Text size="xs" c="dimmed" mt={2}>
-                          {insight.timestamp}
-                        </Text>
-                      </div>
-                    </Group>
-                    <Badge
-                      color={getPriorityBadgeColor(insight.priority)}
-                      variant="light"
-                      size="sm"
-                    >
-                      {insight.priority}
-                    </Badge>
-                  </Group>
+                  <IconRefresh size={18} />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
+          </Group>
 
-                  <Text size="sm" c="dimmed" mt="xs">
-                    {insight.description}
+          <Grid gutter="lg" mb="xl">
+            <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
+              <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
+                <Group justify="space-between" mb="md">
+                  <Group gap="xs">
+                    <IconChartBar size={20} color="#3b82f6" />
+                    <Text fw={600} size="lg">
+                      Status Overview
+                    </Text>
+                  </Group>
+                </Group>
+
+                {statusOverviewData.length > 0 ? (
+                  <>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={statusOverviewData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="count"
+                          label
+                        >
+                          {statusOverviewData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+
+                    <Stack gap="xs" mt="md">
+                      {statusOverviewData.map((item) => (
+                        <Group key={item.status} justify="space-between">
+                          <Group gap="xs">
+                            <Box
+                              w={12}
+                              h={12}
+                              style={{
+                                backgroundColor: item.color,
+                                borderRadius: "50%",
+                              }}
+                            />
+                            <Text size="sm">{item.status}</Text>
+                          </Group>
+                          <Badge variant="light" size="sm">
+                            {item.count}
+                          </Badge>
+                        </Group>
+                      ))}
+                    </Stack>
+                  </>
+                ) : (
+                  <Text size="sm" c="dimmed" ta="center" py="xl">
+                    No tasks available
                   </Text>
-                </Paper>
-              ))}
+                )}
+              </Card>
+            </Grid.Col>
+
+            <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
+              <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
+                <Group justify="space-between" mb="md">
+                  <Group gap="xs">
+                    <IconActivity size={20} color="#10b981" />
+                    <Text fw={600} size="lg">
+                      Recent Activity
+                    </Text>
+                  </Group>
+                </Group>
+
+                <ScrollArea h={300}>
+                  {recentActivityData.length > 0 ? (
+                    <Timeline active={-1} bulletSize={24} lineWidth={2}>
+                      {recentActivityData.map((activity) => (
+                        <Timeline.Item
+                          key={activity.id}
+                          bullet={activity.icon}
+                          title={
+                            <Text size="sm" fw={500} lineClamp={1}>
+                              {activity.taskName}
+                            </Text>
+                          }
+                        >
+                          <Text size="xs" c="dimmed" mt={4}>
+                            {activity.userName} • {activity.timestamp}
+                          </Text>
+                        </Timeline.Item>
+                      ))}
+                    </Timeline>
+                  ) : (
+                    <Text size="sm" c="dimmed" ta="center" py="xl">
+                      No recent activities
+                    </Text>
+                  )}
+                </ScrollArea>
+              </Card>
+            </Grid.Col>
+
+            <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
+              <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
+                <Group justify="space-between" mb="md">
+                  <Group gap="xs">
+                    <IconTarget size={20} color="#f59e0b" />
+                    <Text fw={600} size="lg">
+                      Priority Breakdown
+                    </Text>
+                  </Group>
+                </Group>
+
+                {priorityBreakdownData.length > 0 ? (
+                  <>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={priorityBreakdownData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="priority" />
+                        <YAxis />
+                        <RechartsTooltip />
+                        <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                          {priorityBreakdownData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+
+                    <Stack gap="xs" mt="md">
+                      {priorityBreakdownData.map((item) => (
+                        <Group key={item.priority} justify="space-between">
+                          <Group gap="xs">
+                            <Box
+                              w={12}
+                              h={12}
+                              style={{
+                                backgroundColor: item.color,
+                                borderRadius: 4,
+                              }}
+                            />
+                            <Text size="sm">{item.priority}</Text>
+                          </Group>
+                          <Text size="sm" fw={600}>
+                            {item.count}
+                          </Text>
+                        </Group>
+                      ))}
+                    </Stack>
+                  </>
+                ) : (
+                  <Text size="sm" c="dimmed" ta="center" py="xl">
+                    No priority data available
+                  </Text>
+                )}
+              </Card>
+            </Grid.Col>
+
+            <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
+              <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
+                <Group justify="space-between" mb="md">
+                  <Group gap="xs">
+                    <IconUsers size={20} color="#8b5cf6" />
+                    <Text fw={600} size="lg">
+                      Team Workload
+                    </Text>
+                  </Group>
+                </Group>
+
+                <ScrollArea h={300}>
+                  {teamWorkloadData.length > 0 ? (
+                    <Stack gap="md">
+                      {teamWorkloadData.map((member) => (
+                        <Box key={member.id}>
+                          <Group justify="space-between" mb={8}>
+                            <Group gap="sm">
+                              <Avatar color="blue" radius="xl" size="sm">
+                                {member.avatar}
+                              </Avatar>
+                              <div>
+                                <Text size="sm" fw={500}>
+                                  {member.name}
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                  {member.tasksCompleted}/{member.tasksAssigned}{" "}
+                                  tasks
+                                </Text>
+                              </div>
+                            </Group>
+                            <Badge
+                              color={
+                                member.workloadPercentage > 80
+                                  ? "red"
+                                  : member.workloadPercentage > 60
+                                  ? "yellow"
+                                  : "green"
+                              }
+                              variant="light"
+                              size="sm"
+                            >
+                              {member.workloadPercentage}%
+                            </Badge>
+                          </Group>
+                          <Progress
+                            value={member.workloadPercentage}
+                            color={
+                              member.workloadPercentage > 80
+                                ? "red"
+                                : member.workloadPercentage > 60
+                                ? "yellow"
+                                : "green"
+                            }
+                            size="sm"
+                            radius="xl"
+                          />
+                        </Box>
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Text size="sm" c="dimmed" ta="center" py="xl">
+                      No team members assigned
+                    </Text>
+                  )}
+                </ScrollArea>
+              </Card>
+            </Grid.Col>
+          </Grid>
+        </Box>
+      </Tabs.Panel>
+
+      <Tabs.Panel value="performance" pt="xl">
+        <Stack gap="lg">
+          <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
+            {healthLoading ? (
+              <>
+                <Card shadow="sm" padding="md" radius="md" withBorder>
+                  <Loader size="sm" />
+                </Card>
+              </>
+            ) : health ? (
+              <>
+                <HealthCard
+                  title="Overall Health"
+                  value={health.overallHealth}
+                />
+                <HealthCard
+                  title="Schedule Status"
+                  value={health.schedule.status}
+                  subtitle={`SPI: ${(
+                    health.schedule.schedulePerformanceIndex * 100
+                  ).toFixed(0)}%`}
+                />
+                <HealthCard
+                  title="Resource Utilization"
+                  value={`${(health.resources.utilizationRate * 100).toFixed(
+                    0
+                  )}%`}
+                />
+                <HealthCard
+                  title="Quality Metrics"
+                  value={`${(health.quality.defectRate * 100).toFixed(
+                    1
+                  )}% defect rate`}
+                />
+              </>
+            ) : null}
+          </SimpleGrid>
+
+          <Card shadow="sm" padding="lg" radius="md" withBorder>
+            <Stack gap="md">
+              <Group justify="space-between">
+                <Title order={4}>Velocity Metrics</Title>
+                {velocity?.trend && (
+                  <Badge
+                    color={
+                      velocity.trend === "increasing"
+                        ? "green"
+                        : velocity.trend === "decreasing"
+                        ? "red"
+                        : "blue"
+                    }
+                    variant="light"
+                    leftSection={
+                      velocity.trend === "increasing" ? (
+                        <IconTrendingUp size={14} />
+                      ) : velocity.trend === "decreasing" ? (
+                        <IconTrendingDown size={14} />
+                      ) : (
+                        <IconActivity size={14} />
+                      )
+                    }
+                  >
+                    {velocity.trend}
+                  </Badge>
+                )}
+              </Group>
+
+              {velocity && (
+                <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
+                  <MetricCard
+                    label="Average Velocity"
+                    value={velocity.averageVelocity.toFixed(1)}
+                    unit="story points"
+                  />
+                  <MetricCard
+                    label="Std Deviation"
+                    value={velocity.standardDeviation.toFixed(1)}
+                  />
+                  <MetricCard
+                    label="Minimum"
+                    value={velocity.minimum.toFixed(1)}
+                  />
+                  <MetricCard
+                    label="Maximum"
+                    value={velocity.maximum.toFixed(1)}
+                  />
+                </SimpleGrid>
+              )}
             </Stack>
-          ) : (
-            <Text size="sm" c="dimmed" ta="center" py="xl">
-              No insights available yet
-            </Text>
+          </Card>
+
+          <SimpleGrid cols={{ base: 1, lg: 2 }}>
+            {health && (
+              <>
+                <Card shadow="sm" padding="lg" radius="md" withBorder>
+                  <Stack gap="md">
+                    <Title order={4}>Quality Metrics</Title>
+                    <Group justify="space-around">
+                      <RingProgress
+                        size={120}
+                        thickness={12}
+                        sections={[
+                          {
+                            value: (1 - health.quality.defectRate) * 100,
+                            color: "green",
+                          },
+                        ]}
+                        label={
+                          <Text size="xs" ta="center" fw={700}>
+                            {((1 - health.quality.defectRate) * 100).toFixed(0)}
+                            %
+                            <br />
+                            Quality
+                          </Text>
+                        }
+                      />
+                      <Stack gap="xs">
+                        <Text size="sm" c="dimmed">
+                          Defect Rate:{" "}
+                          <Text
+                            span
+                            fw={600}
+                            c={
+                              health.quality.defectRate < 0.05 ? "green" : "red"
+                            }
+                          >
+                            {(health.quality.defectRate * 100).toFixed(1)}%
+                          </Text>
+                        </Text>
+                        <Text size="sm" c="dimmed">
+                          Rework:{" "}
+                          <Text
+                            span
+                            fw={600}
+                            c={
+                              health.quality.reworkPercentage < 0.1
+                                ? "green"
+                                : "orange"
+                            }
+                          >
+                            {(health.quality.reworkPercentage * 100).toFixed(1)}
+                            %
+                          </Text>
+                        </Text>
+                      </Stack>
+                    </Group>
+                  </Stack>
+                </Card>
+
+                <Card shadow="sm" padding="lg" radius="md" withBorder>
+                  <Stack gap="md">
+                    <Title order={4}>Bottlenecks</Title>
+                    {health.resources.bottlenecks.length === 0 ? (
+                      <Text size="sm" c="dimmed">
+                        No bottlenecks detected
+                      </Text>
+                    ) : (
+                      <Stack gap="xs">
+                        {health.resources.bottlenecks.map((bottleneck, idx) => (
+                          <Paper key={idx} p="sm" withBorder>
+                            <Text size="sm">{bottleneck}</Text>
+                          </Paper>
+                        ))}
+                      </Stack>
+                    )}
+                  </Stack>
+                </Card>
+              </>
+            )}
+          </SimpleGrid>
+        </Stack>
+      </Tabs.Panel>
+
+      <Tabs.Panel value="sprint" pt="xl">
+        <Stack gap="lg">
+          <Group>
+            <Select
+              label="Sprint Start"
+              value={sprintStart}
+              onChange={(value) => setSprintStart(value || "")}
+              data={[
+                {
+                  value: dayjs().subtract(30, "day").format("YYYY-MM-DD"),
+                  label: "30 days ago",
+                },
+                {
+                  value: dayjs().subtract(14, "day").format("YYYY-MM-DD"),
+                  label: "14 days ago",
+                },
+                {
+                  value: dayjs().subtract(7, "day").format("YYYY-MM-DD"),
+                  label: "7 days ago",
+                },
+              ]}
+            />
+            <Select
+              label="Sprint End"
+              value={sprintEnd}
+              onChange={(value) => setSprintEnd(value || "")}
+              data={[
+                { value: dayjs().format("YYYY-MM-DD"), label: "Today" },
+                {
+                  value: dayjs().subtract(1, "day").format("YYYY-MM-DD"),
+                  label: "Yesterday",
+                },
+              ]}
+            />
+          </Group>
+
+          {sprintReport && (
+            <>
+              <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
+                <MetricCard
+                  label="Total Story Points"
+                  value={sprintReport.totalStoryPoints.toString()}
+                  icon={<IconTarget size={20} />}
+                />
+                <MetricCard
+                  label="Completed"
+                  value={sprintReport.completedStoryPoints.toString()}
+                  icon={<IconActivity size={20} />}
+                />
+                <MetricCard
+                  label="Completion Rate"
+                  value={`${sprintReport.completionPercentage.toFixed(0)}%`}
+                />
+                <Card shadow="sm" padding="lg" radius="md" withBorder>
+                  <Stack gap="xs">
+                    <Text size="xs" c="dimmed">
+                      Health Status
+                    </Text>
+                    <Badge
+                      size="lg"
+                      color={
+                        sprintReport.health === "healthy"
+                          ? "green"
+                          : sprintReport.health === "at-risk"
+                          ? "yellow"
+                          : "red"
+                      }
+                    >
+                      {sprintReport.health}
+                    </Badge>
+                  </Stack>
+                </Card>
+              </SimpleGrid>
+
+              <Card shadow="sm" padding="lg" radius="md" withBorder>
+                <Stack gap="md">
+                  <Title order={4}>Burndown Chart</Title>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={sprintReport.burndownChart}>
+                      <defs>
+                        <linearGradient
+                          id="colorIdeal"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#228be6"
+                            stopOpacity={0.3}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#228be6"
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="colorActual"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#40c057"
+                            stopOpacity={0.3}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#40c057"
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="date"
+                        tickFormatter={(value) => dayjs(value).format("MMM DD")}
+                      />
+                      <YAxis />
+                      <RechartsTooltip
+                        labelFormatter={(value) =>
+                          dayjs(value).format("MMM DD, YYYY")
+                        }
+                      />
+                      <Legend />
+                      <Area
+                        type="monotone"
+                        dataKey="idealRemaining"
+                        stroke="#0073EA"
+                        fill="url(#colorIdeal)"
+                        name="Ideal Remaining"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="actualRemaining"
+                        stroke="#00CA72"
+                        fill="url(#colorActual)"
+                        name="Actual Remaining"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </Stack>
+              </Card>
+            </>
           )}
-        </ScrollArea>
-      </Card>
-    </Box>
+        </Stack>
+      </Tabs.Panel>
+
+      <Tabs.Panel value="forecast" pt="xl">
+        {forecast && (
+          <Stack gap="lg">
+            <Card shadow="sm" padding="lg" radius="md" withBorder>
+              <Stack gap="md">
+                <Group>
+                  <IconClock size={24} />
+                  <Title order={4}>Completion Probability</Title>
+                </Group>
+                <Text size="sm" c="dimmed">
+                  Forecast Date:{" "}
+                  <Text span fw={600}>
+                    {dayjs(forecast.forecastDate).format("MMMM D, YYYY")}
+                  </Text>
+                </Text>
+
+                <SimpleGrid cols={{ base: 1, sm: 3 }}>
+                  <Paper p="md" withBorder>
+                    <Stack gap="xs">
+                      <Text size="xs" c="dimmed">
+                        15th Percentile
+                      </Text>
+                      <Text size="xl" fw={700} c="green">
+                        {forecast.probabilityOfCompletion.fifthPercentile} days
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        Best case scenario
+                      </Text>
+                    </Stack>
+                  </Paper>
+                  <Paper p="md" withBorder>
+                    <Stack gap="xs">
+                      <Text size="xs" c="dimmed">
+                        50th Percentile
+                      </Text>
+                      <Text size="xl" fw={700} c="blue">
+                        {forecast.probabilityOfCompletion.fiftiethPercentile}{" "}
+                        days
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        Most likely
+                      </Text>
+                    </Stack>
+                  </Paper>
+                  <Paper p="md" withBorder>
+                    <Stack gap="xs">
+                      <Text size="xs" c="dimmed">
+                        85th Percentile
+                      </Text>
+                      <Text size="xl" fw={700} c="orange">
+                        {forecast.probabilityOfCompletion.eightyFifthPercentile}{" "}
+                        days
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        Conservative estimate
+                      </Text>
+                    </Stack>
+                  </Paper>
+                </SimpleGrid>
+              </Stack>
+            </Card>
+
+            <Card shadow="sm" padding="lg" radius="md" withBorder>
+              <Stack gap="md">
+                <Title order={4}>Risk Mitigation</Title>
+                <Stack gap="xs">
+                  {forecast.recommendedRiskMitigation.map((risk, idx) => (
+                    <Paper key={idx} p="sm" withBorder>
+                      <Group>
+                        <ThemeIcon color="orange" variant="light" size="sm">
+                          {idx + 1}
+                        </ThemeIcon>
+                        <Text size="sm">{risk}</Text>
+                      </Group>
+                    </Paper>
+                  ))}
+                </Stack>
+              </Stack>
+            </Card>
+          </Stack>
+        )}
+      </Tabs.Panel>
+
+      <Tabs.Panel value="ai" pt="xl">
+        {aiAnalysis ? (
+          <Card shadow="sm" padding="lg" radius="md" withBorder>
+            <Stack gap="md">
+              <Group>
+                <IconBrain size={24} />
+                <Title order={4}>AI-Powered Analysis</Title>
+              </Group>
+              <Markdown remarkPlugins={[remarkGfm]}>
+                {aiAnalysis.analysis}
+              </Markdown>
+              <Text size="xs" c="dimmed">
+                Thread ID: {aiAnalysis.threadId}
+              </Text>
+            </Stack>
+          </Card>
+        ) : (
+          <Alert
+            icon={<IconAlertCircle size={16} />}
+            title="No Analysis Available"
+            color="blue"
+          >
+            AI analysis will appear here once data is processed.
+          </Alert>
+        )}
+      </Tabs.Panel>
+    </Tabs>
   );
 };
+
+function HealthCard({
+  title,
+  value,
+  subtitle,
+}: {
+  title: string;
+  value: string;
+  subtitle?: string;
+}) {
+  const getColor = (val: string) => {
+    if (val.includes("healthy") || val.includes("on-track")) return "green";
+    if (val.includes("at-risk")) return "yellow";
+    if (val.includes("critical")) return "red";
+    return "blue";
+  };
+
+  return (
+    <Card shadow="sm" padding="lg" radius="md" withBorder>
+      <Stack gap="xs">
+        <Text size="xs" c="dimmed">
+          {title}
+        </Text>
+        <Badge size="lg" color={getColor(value)}>
+          {value}
+        </Badge>
+        {subtitle && (
+          <Text size="xs" c="dimmed">
+            {subtitle}
+          </Text>
+        )}
+      </Stack>
+    </Card>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  unit,
+  icon,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <Card shadow="sm" padding="lg" radius="md" withBorder>
+      <Stack gap="xs">
+        {icon && <ThemeIcon variant="light">{icon}</ThemeIcon>}
+        <Text size="xs" c="dimmed">
+          {label}
+        </Text>
+        <Text size="xl" fw={700}>
+          {value}
+        </Text>
+        {unit && (
+          <Text size="xs" c="dimmed">
+            {unit}
+          </Text>
+        )}
+      </Stack>
+    </Card>
+  );
+}
 
 export default Summary;

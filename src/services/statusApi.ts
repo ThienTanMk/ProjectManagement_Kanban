@@ -1,21 +1,22 @@
-import { StatusTask } from "@/types/api";
+import { TaskState } from "@/types/api";
 import { instance } from "./axios";
 
-export async function addStatus(name: string): Promise<StatusTask> {
+export async function addStatus(name: string): Promise<TaskState> {
   const response = await instance.post("/statuses", { name });
   return response.data;
 }
 
-export async function getStatuses(): Promise<StatusTask[]> {
+export async function getStatuses(): Promise<TaskState[]> {
   const response = await instance.get("/statuses");
   return response.data;
 }
 
 export async function updateStatus(
   id: string,
-  name: string
-): Promise<StatusTask> {
-  const response = await instance.put(`/statuses/${id}`, { name });
+  name: string,
+  position: number
+): Promise<TaskState> {
+  const response = await instance.put(`/statuses/${id}`, { name, position });
   return response.data;
 }
 

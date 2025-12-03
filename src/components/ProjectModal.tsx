@@ -11,8 +11,6 @@ import {
   ProjectCreateRequest,
   ProjectUpdateRequest,
 } from "@/types/api";
-import { GeneratedTask, generateTasksForProject } from "./GenerativeTaskModal";
-import { GeneratedSubtask } from "./GenerativeSubtask";
 import {
   ProjectForm,
   ProjectPreview,
@@ -20,6 +18,8 @@ import {
   TaskDetailPanel,
   ProjectFormValues,
 } from "./project-modal";
+import { GeneratedTask } from "./agent/GenerativeTaskModal";
+import { GeneratedSubtask } from "./task-detail";
 
 interface ProjectModalProps {
   opened: boolean;
@@ -103,18 +103,18 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
 
   //generate tasks
   const handleGenerateTasks = () => {
-    const tasks = generateTasksForProject(form.values.name);
-    setGeneratedTasks(tasks);
-    setShowGenerative(true);
+    // const tasks = generateTasksForProject(form.values.name);
+    // setGeneratedTasks(tasks);
+    // setShowGenerative(true);
 
-    notifications.show({
-      title: "✨ Tasks Generated",
-      message: `${tasks.length} tasks have been generated successfully!`,
-      color: "blue",
-    });
+    // notifications.show({
+    //   title: "✨ Tasks Generated",
+    //   message: `${tasks.length} tasks have been generated successfully!`,
+    //   color: "blue",
+    // });
   };
 
-  //subtasks generate
+  // subtasks generate
   const handleSubtasksGenerated = (
     taskId: string,
     subtasks: GeneratedSubtask[]
@@ -203,9 +203,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
       title={
         <Group gap="sm">
           <IconFolder size={20} />
-          <Text fw={600}>
-            {isEditing ? "Edit Project" : "Create Project"}
-          </Text>
+          <Text fw={600}>{isEditing ? "Edit Project" : "Create Project"}</Text>
         </Group>
       }
       size={showGenerative ? "95vw" : "lg"}
@@ -221,7 +219,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
               isLoading={isLoading}
               onSubmit={handleSubmit}
               onCancel={onClose}
-              onGenerateTasks={handleGenerateTasks}
+              onGenerateTasks={handleGenerateTasks ?? (() => [])}
               onCloseGenerative={handleCloseGenerative}
               showGenerative={true}
               selectedTasks={selectedTasks}
@@ -269,7 +267,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
           isLoading={isLoading}
           onSubmit={handleSubmit}
           onCancel={onClose}
-          onGenerateTasks={handleGenerateTasks}
+         onGenerateTasks={handleGenerateTasks ?? (() => [])}
           showGenerative={false}
         />
       )}

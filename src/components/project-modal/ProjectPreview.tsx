@@ -2,8 +2,8 @@
 import { Box, Text, Group, Stack, Badge, Divider } from "@mantine/core";
 import dayjs from "dayjs";
 import { ProjectFormValues } from "./types";
-import { GeneratedTask } from "../GenerativeTaskModal";
-import { GeneratedSubtask } from "../GenerativeSubtask";
+import { GeneratedTask } from "../agent/GenerativeTaskModal";
+import { GeneratedSubtask } from "../agent/GenerativeSubtask";
 import { getPriorityColor } from "@/lib/utils";
 
 interface ProjectPreviewProps {
@@ -21,7 +21,7 @@ export function ProjectPreview({
 }: ProjectPreviewProps) {
   const hasSelectedItems = selectedTasks.length > 0 || selectedSubtasks.length > 0;
 
-  // Tạo cấu trúc tree: task -> subtasks của task đó
+  // // Tạo cấu trúc tree: task -> subtasks của task đó
   const taskWithSubtasks = selectedTasks.map((task) => ({
     task,
     subtasks: selectedSubtasks.filter((subtask) =>
@@ -65,18 +65,18 @@ export function ProjectPreview({
       )}
 
       {/* Selected Tasks & Subtasks */}
-      {hasSelectedItems && (
+      {/* {hasSelectedItems && (
         <>
           <Divider my="md" />
           <Text size="sm" fw={500} mb="xs">
             Selected Items:
           </Text>
-          <Stack gap="sm">
+          <Stack gap="sm"> */}
             {/* Hiển thị theo cấu trúc Task -> Subtasks */}
-            {taskWithSubtasks.map(({ task, subtasks }) => (
-              <Box key={task.id}>
+            {/* {taskWithSubtasks.map(({ task, subtasks }) => (
+              <Box key={task.id}> */}
                 {/* Task */}
-                <Box
+                {/* <Box
                   p="xs"
                   style={{
                     borderRadius: "4px",
@@ -101,10 +101,10 @@ export function ProjectPreview({
                       </Badge>
                     </Group>
                   </Group>
-                </Box>
+                </Box> */}
 
                 {/* Subtasks của task này */}
-                {subtasks.length > 0 && (
+                {/* {subtasks.length > 0 && (
                   <Stack gap="xs" mt="xs" ml="md">
                     {subtasks.map((subtask) => (
                       <Box
@@ -135,10 +135,10 @@ export function ProjectPreview({
                   </Stack>
                 )}
               </Box>
-            ))}
+            ))} */}
 
             {/* Hiển thị subtasks không thuộc task nào được chọn (nếu có) */}
-            {selectedSubtasks
+            {/* {selectedSubtasks
               .filter(
                 (subtask) =>
                   !selectedTasks.some((task) =>
@@ -172,7 +172,7 @@ export function ProjectPreview({
               ))}
           </Stack>
         </>
-      )}
+      )} */}
     </Box>
   );
 }

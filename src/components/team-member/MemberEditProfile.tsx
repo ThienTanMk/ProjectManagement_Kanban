@@ -17,24 +17,20 @@ import {
   UsersOnProject,
   UpdateMemberRoleDto,
   ProjectRole,
-  UpdateMemberProfileDto,
 } from "@/types/api";
 
 interface MemberEditProfileProps {
   opened: boolean;
   onClose: () => void;
   member: UsersOnProject | null;
-  onUpdateMemberRole?: (data: {
+  onUpdateMember?: (data: {
     memberId: string;
     data: UpdateMemberRoleDto;
-  }) => Promise<void>;
-  onUpdateMemberProfile?: (data: {
-    memberId: string;
-    data: UpdateMemberProfileDto;
   }) => Promise<void>;
   isUpdating?: boolean;
   isOwner?: boolean;
   currentUserId?: string;
+  isRequiredCompletion?: boolean;
 }
 
 const AVAILABLE_TECHNOLOGIES = [
@@ -71,11 +67,11 @@ export default function MemberEditProfile({
   opened,
   onClose,
   member,
-  onUpdateMemberRole,
-  onUpdateMemberProfile,
+  onUpdateMember,
   isUpdating = false,
   isOwner = false,
   currentUserId,
+  isRequiredCompletion = false,
 }: MemberEditProfileProps) {
   const [role, setRole] = useState<ProjectRole | null>(null);
   const [level, setLevel] = useState<Level | null>(null);
@@ -97,28 +93,46 @@ export default function MemberEditProfile({
     try {
       setError(null);
 
-      // User chỉ có thể update profile của chính mình
-      if (member.userId === currentUserId) {
-        const profileData: UpdateMemberProfileDto = {};
+      const updateData: UpdateMemberRoleDto = {};
 
-        // Chỉ gửi các giá trị đã thay đổi
+      if (
+        isOwner &&
+        member.userId !== currentUserId &&
+        role &&
+        role !== member.role
+      ) {
+        updateData.role = role;
+      }
+
+      if (member.userId === currentUserId) {
         if (level !== member.level) {
-          profileData.level = level;
+          updateData.level = level ?? undefined;
         }
 
         if (
           JSON.stringify(technologies.sort()) !==
           JSON.stringify((member.technologies || []).sort())
         ) {
-          profileData.technologies = technologies;
+          updateData.technologies = technologies;
         }
 
-        if (Object.keys(profileData).length > 0) {
-          await onUpdateMemberProfile?.({
-            memberId: member.userId,
-            data: profileData,
-          });
+        if (isRequiredCompletion) {
+          if (!level) {
+            setError("Level is required");
+            return;
+          }
+          if (!technologies || technologies.length === 0) {
+            setError("Please select at least one technology");
+            return;
+          }
         }
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await onUpdateMember?.({
+          memberId: member.userId,
+          data: updateData,
+        });
       }
 
       onClose();
@@ -151,7 +165,7 @@ export default function MemberEditProfile({
   return (
     <Modal
       opened={opened}
-      onClose={onClose}
+      onClose={isRequiredCompletion ? () => {} : onClose}
       title={
         <Text size="lg" fw={700}>
           Edit Member Profile
@@ -237,6 +251,12 @@ export default function MemberEditProfile({
             variant="light"
           >
             {error}
+          </Alert>
+        )}
+
+        {isRequiredCompletion && (
+          <Alert color="blue" variant="light" mb="md">
+            Please complete your profile to join the project
           </Alert>
         )}
 

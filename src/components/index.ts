@@ -5,3 +5,4 @@ export { default as ProjectSidebar } from "./ProjectSidebar";
 export { default as ProjectModal } from "./ProjectModal";
 export { default as AppLayout } from "./AppLayout";
 export { default as ViewerAlert } from "./ViewerAlert";
+export { PerformanceView } from "./PerformanceView";

@@ -24,12 +24,12 @@ interface ProjectItemProps {
   isDraggable?: boolean;
   collapsed: boolean;
   currentProjectId: string | null;
-  toggleFavorite: (projectId: number) => void;
-  addProjectToFolder: (projectId: number, folderId: string) => void;
+  toggleFavorite: (projectId: string) => void;
+  addProjectToFolder: (projectId: string, folderId: string) => void;
   handleSelectProject: (project: Project) => void;
   handleDeleteProject: (project: Project) => void;
   customFolders: { id: string; name: string }[];
-  favoriteProjectIds: Set<number>;
+  favoriteProjectIds: Set<string>;
 }
 
 export const ProjectItem: React.FC<ProjectItemProps> = ({

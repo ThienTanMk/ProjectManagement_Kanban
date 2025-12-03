@@ -4,14 +4,24 @@ import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { Button, TextInput, Paper } from "@mantine/core";
 import { IconPlus, IconX, IconCheck } from "@tabler/icons-react";
 import KanbanColumn from "./KanbanColumn";
+import { Task } from "@/types/api";
 
 interface KanbanProps {
-  columns: any[];
-  onViewTask: (task: any) => void;
+  columns: Array<{
+    id: string;
+    title: string;
+    tasks: Task[];
+    position?: number;
+  }>;
+  onViewTask: (task: Task) => void;
   onAddTask: (columnId: string) => void;
   onAddColumn: () => void;
   onDeleteColumn: (columnId: string) => void;
-  onRenameColumn: (columnId: string, newTitle: string) => void;
+  onUpdateColumn: (
+    columnId: string,
+    newTitle: string,
+    position: number
+  ) => void;
   isAddingColumn: boolean;
   setIsAddingColumn: Dispatch<SetStateAction<boolean>>;
   newColumnTitle: string;
@@ -26,7 +36,7 @@ export default memo(function Kanban({
   onAddTask,
   onAddColumn,
   onDeleteColumn,
-  onRenameColumn,
+  onUpdateColumn,
   isAddingColumn,
   setIsAddingColumn,
   newColumnTitle,
@@ -96,12 +106,12 @@ export default memo(function Kanban({
                   }`}
                 >
                   <KanbanColumn
-                    column={column}
+                    column={{ ...column, position: column.position ?? index }}
                     onViewTask={onViewTask}
                     onAddTask={() => onAddTask(column.id)}
                     onDeleteColumn={() => onDeleteColumn(column.id)}
-                    onRenameColumn={(newTitle) =>
-                      onRenameColumn(column.id, newTitle)
+                    onUpdateColumn={(id, newTitle, position) =>
+                      onUpdateColumn(id, newTitle, position)
                     }
                     dragHandleProps={provided.dragHandleProps}
                     canEditTasks={canEditTasks}

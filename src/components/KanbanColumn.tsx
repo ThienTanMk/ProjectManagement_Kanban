@@ -25,7 +25,8 @@ import { Task } from "@/types/api";
 interface Column {
   id: string;
   title: string;
-  cards: Task[];
+  tasks: Task[];
+  position: number;
 }
 
 interface KanbanColumnProps {
@@ -33,18 +34,20 @@ interface KanbanColumnProps {
   onViewTask: (task: Task) => void;
   onAddTask: () => void;
   onDeleteColumn?: () => void;
-  onRenameColumn?: (newTitle: string) => void;
+  onUpdateColumn?: (id: string, newTitle: string, newPosition: number) => void;
   dragHandleProps?: any;
   canEditTasks?: boolean;
   canDragTasks?: boolean;
 }
+
+const DONT_EDIT_OR_DELETE = ["To Do", "In Progress", "Done"];
 
 export default memo(function KanbanColumn({
   column,
   onViewTask,
   onAddTask,
   onDeleteColumn,
-  onRenameColumn,
+  onUpdateColumn,
   dragHandleProps,
   canEditTasks = true,
   canDragTasks = true,
@@ -52,9 +55,9 @@ export default memo(function KanbanColumn({
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState(column.title);
 
-  const handleRename = () => {
-    if (newTitle.trim() && onRenameColumn) {
-      onRenameColumn(newTitle.trim());
+  const handleUpdate = () => {
+    if (newTitle.trim() && onUpdateColumn) {
+      onUpdateColumn(column.id, newTitle.trim(), column.position);
       setIsRenameModalOpen(false);
     }
   };
@@ -63,9 +66,10 @@ export default memo(function KanbanColumn({
     <>
       <Paper
         key={column.id}
-        shadow="md"
+        shadow="sm"
         radius="md"
         p="md"
+        withBorder
         style={{
           backgroundColor: "var(--monday-bg-tertiary)",
           width: "clamp(260px, 24vw, 340px)",
@@ -91,9 +95,9 @@ export default memo(function KanbanColumn({
           </Group>
           <Group gap="xs">
             <Badge variant="outline" size="sm">
-              {column.cards.length}
+              {column.tasks.length}
             </Badge>
-            {canEditTasks && (
+            {canEditTasks && !DONT_EDIT_OR_DELETE.includes(column.title) && (
               <Menu shadow="md" width={150}>
                 <Menu.Target>
                   <ActionIcon variant="subtle" color="gray" size="sm">
@@ -114,7 +118,7 @@ export default memo(function KanbanColumn({
                     leftSection={<IconTrash size={14} />}
                     color="red"
                     onClick={onDeleteColumn}
-                    disabled={column.cards.length > 0}
+                    disabled={column.tasks.length > 0}
                   >
                     Delete
                   </Menu.Item>
@@ -123,7 +127,7 @@ export default memo(function KanbanColumn({
             )}
           </Group>
         </Group>
-      
+
         <Droppable droppableId={column.id}>
           {(provided) => (
             <div
@@ -135,12 +139,12 @@ export default memo(function KanbanColumn({
                 flexDirection: "column",
                 gap: "8px",
                 overflowY: "auto",
-                minHeight: 0, 
+                minHeight: 0,
                 paddingBottom: "8px",
               }}
               className="scrollbar-thin scrollbar-thumb-gray-400"
             >
-              {column.cards.map((card, idx) => (
+              {column.tasks.map((card, idx) => (
                 <Draggable
                   key={card.id}
                   draggableId={card.id}
@@ -198,7 +202,7 @@ export default memo(function KanbanColumn({
           data-autofocus
           onKeyDown={(e) => {
             if (e.key === "Enter") {
-              handleRename();
+              handleUpdate();
             } else if (e.key === "Escape") {
               setIsRenameModalOpen(false);
             }
@@ -209,7 +213,7 @@ export default memo(function KanbanColumn({
             Cancel
           </Button>
           <Button
-            onClick={handleRename}
+            onClick={handleUpdate}
             disabled={!newTitle.trim() || newTitle.trim() === column.title}
           >
             Rename

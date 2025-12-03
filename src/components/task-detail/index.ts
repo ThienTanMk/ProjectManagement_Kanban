@@ -4,11 +4,12 @@ export { TaskTabs } from "./TaskTabs";
 export { CommentsSection } from "./TaskComments";
 export { HistorySection } from "./TaskHistory";
 export { SubtasksPanel } from "./TaskSubtasksPanel";
-export { GeneratedSubtasksPanel } from "./TaskGenSubtask";
+export { TaskDetailShowSubtasksPanel } from "./TaskDetailShowSubtasks";
 export { default as SubtaskTree } from "../SubtaskDetail";
 export { TaskAddSubtask } from "./TaskAddSubtask";
+export { FormattedDescription } from "./FormattedDescription";
 export { 
   generateSubtasksForTask, 
-  getPriorityColor,
   type GeneratedSubtask 
-} from "../GenerativeSubtask";
+} from "../agent/GenerativeSubtask";
+export { getPriorityColor } from "@/lib/utils";

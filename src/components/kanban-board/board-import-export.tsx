@@ -13,7 +13,6 @@ import { useGetMe } from "@/hooks/user";
 import { queryClient } from "@/services/queryClient";
 import { notifications } from "@mantine/notifications";
 
-// === Utility chọn file ===
 async function pickFile(accept: string[]) {
   return new Promise<File | null>((resolve) => {
     const input = document.createElement("input");
@@ -119,7 +118,6 @@ export function TaskImportExport() {
       const text = await file.text();
       const imported = JSON.parse(text);
 
-      // Gửi data lên API (tuỳ backend của bạn)
       console.log("Imported JSON:", imported);
 
       notifications.show({
@@ -130,7 +128,7 @@ export function TaskImportExport() {
         color: "green",
       });
 
-      queryClient.invalidateQueries(); // refresh toàn bộ cache
+      queryClient.invalidateQueries();
     } catch (err) {
       notifications.show({
         title: "Import failed",

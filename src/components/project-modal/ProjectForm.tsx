@@ -4,8 +4,8 @@ import { DateInput } from "@mantine/dates";
 import { IconFolder, IconFileText, IconCalendar, IconSparkles, IconX } from "@tabler/icons-react";
 import { ProjectForm as ProjectFormType, ProjectFormValues } from "./types";
 import { ProjectPreview } from "./ProjectPreview";
-import { GeneratedTask } from "../GenerativeTaskModal";
-import { GeneratedSubtask } from "../GenerativeSubtask";
+import { GeneratedTask } from "../agent/GenerativeTaskModal";
+import { GeneratedSubtask } from "../agent/GenerativeSubtask";
 
 interface ProjectFormProps {
   form: ProjectFormType;

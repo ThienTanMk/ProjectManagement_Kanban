@@ -42,7 +42,6 @@ const profileSchema = z.object({
     .regex(/^[\+]?[1-9][\d]{0,15}$/, "Invalid phone number format")
     .optional()
     .or(z.literal("")),
-  position: z.string().optional().or(z.literal("")), 
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -52,16 +51,6 @@ export default function ProfileScreen() {
   const updateMeMutation = useUpdateMe();
   const router = useRouter();
 
-  // danh sách chức vụ mẫu
-  const positions = [
-    "Frontend Developer",
-    "Backend Developer",
-    "Fullstack Developer",
-    "Mobile Developer",
-    "UI/UX Designer",
-    "Tester",
-    "Project Manager",
-  ];
 
   // Avatar upload state
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -87,7 +76,6 @@ export default function ProfileScreen() {
         email: user.email || "",
         bio: user.bio || "",
         phone: user.phone || "",
-        position: user.position || "",
       });
     }
   }, [user]);
@@ -178,7 +166,6 @@ export default function ProfileScreen() {
         name: values.name,
         bio: values.bio || undefined,
         phone: values.phone || undefined,
-        position: values.position || undefined,
         avatar: avatarUrl,
       });
 
@@ -295,15 +282,6 @@ export default function ProfileScreen() {
                   placeholder="Enter your phone number"
                   type="tel"
                   {...form.getInputProps("phone")}
-                />
-
-                <Select
-                  label="Position"
-                  placeholder="Select or enter your position"
-                  data={positions.map((p) => ({ value: p, label: p }))}
-                  searchable
-                  clearable
-                  {...form.getInputProps("position")}
                 />
 
                 <Textarea

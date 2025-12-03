@@ -37,7 +37,7 @@ export default function KanbanTableView({
 
     const grouped = tasks.reduce((acc, task) => {
       const statusName =
-        task.status?.name ||
+        task.taskState?.name ||
         (task.statusId && statusMap.has(task.statusId)
           ? statusMap.get(task.statusId)!.name
           : "Unknown");

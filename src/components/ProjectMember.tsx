@@ -13,11 +13,12 @@ import {
   ActionIcon,
 } from "@mantine/core";
 import { IconEdit } from "@tabler/icons-react";
-import { UsersOnProject, Task, UpdateMemberRoleDto, UpdateMemberProfileDto } from "@/types/api";
+import { UsersOnProject, Task, UpdateMemberRoleDto } from "@/types/api";
 import { useGetMe } from "@/hooks/user";
-import { useUpdateMemberProfile, useUpdateMemberRole } from "@/hooks/project";
+import { useUpdateMember } from "@/hooks/project";
 import { useProjectStore } from "@/stores/projectStore";
 import MemberEditProfile from "./team-member/MemberEditProfile";
+import TaskDetailModal from "./TaskDetailModal";
 
 interface ProjectMemberProps {
   teamMembers: UsersOnProject[];
@@ -35,8 +36,15 @@ export default function ProjectMember({
 
   const { data: currentUser } = useGetMe();
   const { currentProjectId } = useProjectStore();
-  const { mutateAsync: updateMemberRole } = useUpdateMemberRole();
-  const { mutateAsync: updateMemberProfile, isPending: isUpdating } = useUpdateMemberProfile();
+  const { mutateAsync: updateMember, isPending: isUpdating } =
+    useUpdateMember();
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [taskModalOpened, setTaskModalOpened] = useState(false);
+
+  const openTaskDetail = (taskId: string) => {
+    setSelectedTaskId(taskId);
+    setTaskModalOpened(true);
+  };
 
   const isOwner = teamMembers.some(
     (member) => member.userId === currentUser?.id && member.role === "OWNER"
@@ -52,7 +60,7 @@ export default function ProjectMember({
     setEditingMember(null);
   };
 
-  const handleUpdateMemberRole = async ({
+  const handleUpdateMember = async ({
     memberId,
     data,
   }: {
@@ -61,22 +69,7 @@ export default function ProjectMember({
   }) => {
     if (!currentProjectId) return;
 
-    await updateMemberRole({
-      projectId: currentProjectId,
-      memberId,
-      data,
-    });
-  };
-
-  const handleUpdateMemberProfile = async ({
-    memberId,
-    data,
-  }: {
-    memberId: string;
-    data: UpdateMemberProfileDto;
-  }) => {
-    if (!currentProjectId) return;
-    await updateMemberProfile({
+    await updateMember({
       projectId: currentProjectId,
       memberId,
       data,
@@ -100,6 +93,10 @@ export default function ProjectMember({
             // Lọc task theo assignee
             const memberTasks = tasks.filter((task) =>
               task.assignees?.some((a) => a.userId === member.userId)
+            );
+
+            const createdTasks = tasks.filter(
+              (task) => task.ownerId === member.userId
             );
 
             const canEdit = isCurrentUserMember(member.userId);
@@ -204,27 +201,74 @@ export default function ProjectMember({
                   </Group>
                 </Group>
 
+                {/* Danh sách task created */}
+                <Accordion variant="contained">
+                  <Accordion.Item value={`created-${member.userId}`}>
+                    <Accordion.Control>
+                      <Text fw={500}>
+                        Tasks Created ({createdTasks.length})
+                      </Text>
+                    </Accordion.Control>
+                    <Accordion.Panel>
+                      {createdTasks.length > 0 ? (
+                        <Stack gap="xs">
+                          {createdTasks.map((task) => (
+                            <Group
+                              key={task.id}
+                              justify="space-between"
+                              wrap="nowrap"
+                              p="xs"
+                              onClick={() => openTaskDetail(task.id)}
+                              className="cursor-pointer rounded border 
+                                        border-(--monday-border-primary) 
+                                        bg-(--monday-bg-tertiary)]
+                                        hover:bg-(--monday-bg-hover)"
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  "var(--monday-bg-hover)")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  "var(--monday-bg-tertiary)")
+                              }
+                            >
+                              <Text
+                                size="sm"
+                                className="text-sm text-(--monday-text-primary) flex-1"
+                              >
+                                • {task.name}
+                              </Text>
+                              <Badge
+                                size="xs"
+                                color={
+                                  task.taskState?.name
+                                    ?.toLowerCase()
+                                    .includes("done")
+                                    ? "green"
+                                    : task.taskState?.name
+                                        ?.toLowerCase()
+                                        .includes("progress")
+                                    ? "blue"
+                                    : "gray"
+                                }
+                                variant="light"
+                              >
+                                {task.taskState?.name || "No status"}
+                              </Badge>
+                            </Group>
+                          ))}
+                        </Stack>
+                      ) : (
+                        <Text size="sm" c="dimmed">
+                          No tasks created
+                        </Text>
+                      )}
+                    </Accordion.Panel>
+                  </Accordion.Item>
+                </Accordion>
+
                 {/* Danh sách task */}
-                <Accordion
-                  variant="contained"
-                  styles={{
-                    control: {
-                      backgroundColor: "var(--monday-bg-secondary)",
-                      color: "var(--monday-text-primary)",
-                      "&:hover": {
-                        backgroundColor: "var(--monday-bg-hover)",
-                      },
-                    },
-                    content: {
-                      backgroundColor: "var(--monday-bg-secondary)",
-                      color: "var(--monday-text-primary)",
-                    },
-                    item: {
-                      border: "1px solid var(--monday-border-primary)",
-                      borderRadius: "4px",
-                    },
-                  }}
-                >
+                <Accordion variant="contained">
                   <Accordion.Item value={`tasks-${member.userId}`}>
                     <Accordion.Control>
                       <Text fw={500}>
@@ -240,12 +284,22 @@ export default function ProjectMember({
                               justify="space-between"
                               wrap="nowrap"
                               p="xs"
+                              onClick={() => openTaskDetail(task.id)}
                               style={{
                                 backgroundColor: "var(--monday-bg-tertiary)",
                                 borderRadius: "4px",
                                 border:
                                   "1px solid var(--monday-border-primary)",
+                                cursor: "pointer",
                               }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  "var(--monday-bg-hover)")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  "var(--monday-bg-tertiary)")
+                              }
                             >
                               <Text
                                 size="sm"
@@ -259,11 +313,11 @@ export default function ProjectMember({
                               <Badge
                                 size="xs"
                                 color={
-                                  task.status?.name
+                                  task.taskState?.name
                                     ?.toLowerCase()
                                     .includes("done")
                                     ? "green"
-                                    : task.status?.name
+                                    : task.taskState?.name
                                         ?.toLowerCase()
                                         .includes("progress")
                                     ? "blue"
@@ -271,7 +325,7 @@ export default function ProjectMember({
                                 }
                                 variant="light"
                               >
-                                {task.status?.name || "No status"}
+                                {task.taskState?.name || "No status"}
                               </Badge>
                             </Group>
                           ))}
@@ -297,12 +351,21 @@ export default function ProjectMember({
         opened={editModalOpened}
         onClose={handleCloseModal}
         member={editingMember}
-        onUpdateMemberRole={handleUpdateMemberRole}
-        onUpdateMemberProfile={handleUpdateMemberProfile}
+        onUpdateMember={handleUpdateMember}
         isUpdating={isUpdating}
         isOwner={isOwner}
         currentUserId={currentUser?.id}
       />
+      {selectedTaskId && (
+        <TaskDetailModal
+          taskId={selectedTaskId}
+          opened={taskModalOpened}
+          onClose={() => {
+            setTaskModalOpened(false);
+            setSelectedTaskId(null);
+          }}
+        />
+      )}
     </>
   );
 }

@@ -4,6 +4,7 @@ import { useProjectStore } from "@/stores/projectStore";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
 import { useUserStore } from "@/stores/userStore";
+import { create } from 'zustand';
 
 export function useGetMe() {
   const { uid } = useAuth();
@@ -38,3 +39,17 @@ export function useGetAvailableUsers() {
     queryFn: getAvailableUsers,
   });
 }
+
+interface ProfileCompletionStore {
+  pendingProjectId: string | null;
+  setPendingProjectId: (id: string | null) => void;
+  shouldShowProfileModal: boolean;
+  setShouldShowProfileModal: (show: boolean) => void;
+}
+
+export const useProfileCompletionStore = create<ProfileCompletionStore>((set) => ({
+  pendingProjectId: null,
+  setPendingProjectId: (id) => set({ pendingProjectId: id }),
+  shouldShowProfileModal: false,
+  setShouldShowProfileModal: (show) => set({ shouldShowProfileModal: show }),
+}));

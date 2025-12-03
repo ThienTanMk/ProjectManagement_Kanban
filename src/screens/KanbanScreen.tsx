@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Group,
@@ -8,32 +8,35 @@ import {
   Container,
   Alert,
   Paper,
-  Badge,
   Stack,
-  Divider,
+  Modal,
 } from "@mantine/core";
 import {
   IconShare,
   IconAlertCircle,
-  IconUser,
-  IconCalendar,
-  IconPlus,
+  IconSparkles,
+  IconUsers,
 } from "@tabler/icons-react";
 import KanbanBoardNew from "../components/KanbanBoardNew";
 import ShareModal from "../components/ShareModal";
-import NotificationDropdown from "../components/NotificationDropdown";
 import AppLayout from "../components/AppLayout";
 import ViewerAlert from "../components/ViewerAlert";
+import AITaskCreationModal from "../components/AITaskCreationModal";
+import ProjectMember from "../components/ProjectMember";
 import { useProjectStore } from "../stores/projectStore";
-import { useProject } from "../hooks/project";
+import {
+  useProject,
+  useGetTeamMembers,
+  useProjectTasks,
+} from "../hooks/project";
 import { useUserStore } from "@/stores/userStore";
 import { usePermissions } from "@/hooks/usePermissions";
-import dayjs from "dayjs";
-import { TaskImportExport } from "@/components/kanban-board/board-import-export";
 
 export default function KanbanScreen() {
   const router = useRouter();
   const [shareModalOpened, setShareModalOpened] = useState(false);
+  const [aiTaskModalOpened, setAiTaskModalOpened] = useState(false);
+  const [memberModalOpened, setMemberModalOpened] = useState(false);
   const { currentProjectId } = useProjectStore();
   const { canShareProject } = usePermissions();
   const handleNavigateToProfile = () => {
@@ -45,6 +48,8 @@ export default function KanbanScreen() {
     isLoading,
     error,
   } = useProject(currentProjectId);
+  const { data: teamMembers = [] } = useGetTeamMembers();
+  const { data: tasks = [] } = useProjectTasks(currentProjectId);
   const { clearData } = useProjectStore();
   const { clearData: clearUserData } = useUserStore();
 
@@ -71,35 +76,54 @@ export default function KanbanScreen() {
               border: "1px solid var(--monday-border-primary)",
             }}
           >
-            <Group justify="space-between" align="center">
-              <div>
-                <Group gap="md" align="center">
-                  <div>
-                    <Text size="xl" fw={700} c="var(--monday-text-primary)">
-                      {currentProject.name}
-                    </Text>
-                    {currentProject.description && (
-                      <Text size="sm" c="var(--monday-text-secondary)">
-                        {currentProject.description}
+            <Stack gap="md">
+              <Group justify="space-between" align="center">
+                <div>
+                  <Group gap="md" align="center">
+                    <div>
+                      <Text size="xl" fw={700} c="var(--monday-text-primary)">
+                        {currentProject.name}
                       </Text>
-                    )}
-                  </div>
-                </Group>
-              </div>
+                      {currentProject.description && (
+                        <Text size="sm" c="var(--monday-text-secondary)">
+                          {currentProject.description}
+                        </Text>
+                      )}
+                    </div>
+                  </Group>
+                </div>
 
-              <Group gap="md">
-                {canShareProject && (
+                <Group gap="md">
                   <Button
-                    leftSection={<IconShare size={16} />}
-                    onClick={() => setShareModalOpened(true)}
+                    variant="outline"
+                    color="violet"
+                    leftSection={<IconSparkles size={16} />}
+                    onClick={() => setAiTaskModalOpened(true)}
                     size="sm"
                   >
-                    Share
+                    Create with AI
                   </Button>
-                )}
-                <TaskImportExport />
+                  <Button
+                    variant="outline"
+                    color="blue"
+                    leftSection={<IconUsers size={16} />}
+                    onClick={() => setMemberModalOpened(true)}
+                    size="sm"
+                  >
+                    Team Members
+                  </Button>
+                  {canShareProject && (
+                    <Button
+                      leftSection={<IconShare size={16} />}
+                      onClick={() => setShareModalOpened(true)}
+                      size="sm"
+                    >
+                      Share
+                    </Button>
+                  )}
+                </Group>
               </Group>
-            </Group>
+            </Stack>
           </Paper>
         )}
 
@@ -107,7 +131,6 @@ export default function KanbanScreen() {
           <Alert
             icon={<IconAlertCircle size={16} />}
             title="No Project Selected"
-            color="white"
             variant="light"
             mb="md"
           >
@@ -139,6 +162,25 @@ export default function KanbanScreen() {
           opened={shareModalOpened}
           onClose={() => setShareModalOpened(false)}
         />
+
+        <AITaskCreationModal
+          opened={aiTaskModalOpened}
+          onClose={() => setAiTaskModalOpened(false)}
+        />
+
+        <Modal
+          opened={memberModalOpened}
+          onClose={() => setMemberModalOpened(false)}
+          title={
+            <Text size="lg" fw={700}>
+              Team Members
+            </Text>
+          }
+          size="xl"
+          centered
+        >
+          <ProjectMember teamMembers={teamMembers} tasks={tasks} />
+        </Modal>
       </Container>
     </AppLayout>
   );

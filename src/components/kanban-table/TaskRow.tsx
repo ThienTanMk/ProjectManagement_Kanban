@@ -1,5 +1,14 @@
 "use client";
-import { Table, Group, Box, Text, Badge, Menu, ActionIcon, Tooltip } from "@mantine/core";
+import {
+  Table,
+  Group,
+  Box,
+  Text,
+  Badge,
+  Menu,
+  ActionIcon,
+  Tooltip,
+} from "@mantine/core";
 import {
   IconDots,
   IconEye,
@@ -30,7 +39,7 @@ export function TaskRow({
   onViewTask,
   onToggleExpansion,
 }: TaskRowProps) {
-  const { data: subtasks = []} = useGetSubtasks(task.id);
+  const { data: subtasks = [] } = useGetSubtasks(task.id);
   const hasSubtasks = subtasks.length > 0;
 
   return (
@@ -43,45 +52,65 @@ export function TaskRow({
             className={`${
               snapshot.isDragging ? "bg-gray-50 opacity-80" : "opacity-100"
             } transition-all`}
-            style={provided.draggableProps.style}
+            style={{
+              ...provided.draggableProps.style,
+              cursor: "pointer",
+            }}
+            onClick={(e) => {
+              // Ngăn không mở khi click vào nút expand hoặc drag
+              if (
+                (e.target as HTMLElement).closest("button") ||
+                (e.target as HTMLElement).closest("[role='button']") ||
+                (e.target as HTMLElement).closest(".cursor-grab")
+              ) {
+                return;
+              }
+              onViewTask(task);
+            }}
           >
             <Table.Td>
               <Group gap="sm" align="center">
-                <div
-                  {...provided.dragHandleProps}
-                  className="cursor-grab active:cursor-grabbing"
-                >
-                  <IconGripVertical size={16} color="#999" />
-                </div>
-                {hasSubtasks && (
-                  <ActionIcon
-                    size="sm"
-                    variant="subtle"
-                    onClick={(e) => onToggleExpansion(task.id, e)}
-                    color="blue"
+                <div className="flex items-center gap-2 min-w-0">
+                  <div
+                    {...provided.dragHandleProps}
+                    className="cursor-grab active:cursor-grabbing"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    {isExpanded ? (
-                      <IconChevronDown size={16} />
-                    ) : (
-                      <IconChevronRight size={16} />
-                    )}
-                  </ActionIcon>
-                )}
-                {!hasSubtasks && <Box style={{ width: 28 }} />}
-                <div>
-                  <Text fw={500} size="sm" className="truncate max-w-[200px]">
-                    {task.name}
-                  </Text>
-                  {task.description && (
-                    <Text
-                      size="xs"
-                      c="dimmed"
-                      className="truncate max-w-[200px]"
+                    <IconGripVertical size={16} color="#999" />
+                  </div>
+                  {hasSubtasks && (
+                    <ActionIcon
+                      size="sm"
+                      variant="subtle"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleExpansion(task.id, e);
+                      }}
+                      color="blue"
                     >
-                      {task.description}
-                    </Text>
+                      {isExpanded ? (
+                        <IconChevronDown size={16} />
+                      ) : (
+                        <IconChevronRight size={16} />
+                      )}
+                    </ActionIcon>
                   )}
+                  <div>
+                    <Text fw={500} size="sm" className="truncate max-w-[300px]">
+                      {task.name}
+                    </Text>
+                    {task.description && (
+                      <Text
+                        size="xs"
+                        c="dimmed"
+                        className="truncate max-w-[300px]"
+                      >
+                        {task.description}
+                      </Text>
+                    )}
+                  </div>
                 </div>
+                {!hasSubtasks && <Box style={{ width: 28 }} />}
               </Group>
             </Table.Td>
             <Table.Td>

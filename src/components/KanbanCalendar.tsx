@@ -12,8 +12,9 @@ import {
   Grid,
   Select,
   Modal,
+  Popover,
 } from "@mantine/core";
-import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
+import { IconChevronLeft, IconChevronRight, IconX } from "@tabler/icons-react";
 import {
   DragDropContext,
   Droppable,
@@ -209,9 +210,14 @@ export default function KanbanCalendar({
               ref={provided.innerRef}
               {...provided.droppableProps}
             >
-              <Text size="sm" className="text-gray-500" mb="xs">
-                Unscheduled tasks
-              </Text>
+              <Group justify="space-between" mb="xs">
+                <Text size="sm" fw={600} c="dimmed">
+                  📋 Unscheduled Tasks
+                </Text>
+                <Badge size="sm" variant="light" color="gray">
+                  {taskGroups.unscheduled.length}
+                </Badge>
+              </Group>
               <Group gap="xs" wrap="nowrap" style={{ overflowX: "auto" }}>
                 {taskGroups.unscheduled.map((task, index) => (
                   <Draggable key={task.id} draggableId={task.id} index={index}>
@@ -281,25 +287,86 @@ export default function KanbanCalendar({
         ))}
       </Grid>
 
-      <Modal
-        opened={moreTasksModalOpened}
-        onClose={() => setMoreTasksModalOpened(false)}
-        title={`${selectedDay?.format("MMMM DD, YYYY")} - ${
-          selectedDayTasks.length
-        } tasks`}
-        centered
-      >
-        <Stack gap="xs">
-          {selectedDayTasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              card={task}
-              onViewTask={onViewTask}
-              isCalendarView={true}
+      {selectedDay && moreTasksModalOpened && (
+        <Popover
+          opened={moreTasksModalOpened}
+          onChange={setMoreTasksModalOpened}
+          position="bottom"
+          width={320}
+          withinPortal
+          zIndex={100}
+        >
+          <Popover.Target>
+            <Box
+              style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
             />
-          ))}
-        </Stack>
-      </Modal>
+          </Popover.Target>
+          <Popover.Dropdown
+            style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              // zIndex: 100,
+            }}
+          >
+            <Stack gap="xs" p="xs">
+              <Group justify="space-between" mb="xs">
+                <Text size="sm" fw={600}>
+                  {selectedDay.format("dddd, MMMM DD")}
+                </Text>
+                <ActionIcon
+                  size="sm"
+                  variant="subtle"
+                  onClick={() => setMoreTasksModalOpened(false)}
+                >
+                  <IconX size={14} />
+                </ActionIcon>
+              </Group>
+              <Droppable
+                droppableId={`calendar-day-${selectedDay.format("YYYY-MM-DD")}`}
+              >
+                {(provided) => (
+                  <Stack
+                    gap="xs"
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    style={{ minHeight: 100 }}
+                  >
+                    {selectedDayTasks.map((task, index) => (
+                      <Draggable
+                        key={task.id}
+                        draggableId={task.id}
+                        index={index}
+                      >
+                        {(dragProvided, dragSnapshot) => (
+                          <div
+                            ref={dragProvided.innerRef}
+                            {...dragProvided.draggableProps}
+                            {...dragProvided.dragHandleProps}
+                            style={{
+                              ...dragProvided.draggableProps.style,
+                              opacity: dragSnapshot.isDragging ? 0.7 : 1,
+                            }}
+                          >
+                            <TaskCard
+                              card={task}
+                              onViewTask={onViewTask}
+                              isCalendarView={true}
+                              isDragging={dragSnapshot.isDragging}
+                            />
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </Stack>
+                )}
+              </Droppable>
+            </Stack>
+          </Popover.Dropdown>
+        </Popover>
+      )}
     </DragDropContext>
   );
 }

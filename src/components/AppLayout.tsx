@@ -1,14 +1,12 @@
 import { useState } from "react";
-import {
-  Divider,
-  Flex,
-  Box,
-} from "@mantine/core";
+import { Divider, Flex, Box, ActionIcon, Drawer } from "@mantine/core";
 
 import ProjectSidebar from "./ProjectSidebar";
 import ProjectModal from "./ProjectModal";
 import { Project } from "../types/api";
 import { useGetMe } from "@/hooks/user";
+import { useMediaQuery } from "@mantine/hooks";
+import { IconMenu2 } from "@tabler/icons-react";
 interface AppLayoutProps {
   children: React.ReactNode;
   onLogout: () => void;
@@ -24,13 +22,18 @@ export default function AppLayout({
   const [projectModalOpened, setProjectModalOpened] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpened, setMobileSidebarOpened] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 768px)");
+
   const handleCreateProject = () => {
     setEditingProject(null);
     setProjectModalOpened(true);
+    if (isMobile) setMobileSidebarOpened(false);
   };
   const handleEditProject = (project: Project) => {
     setEditingProject(project);
     setProjectModalOpened(true);
+    if (isMobile) setMobileSidebarOpened(false);
   };
   const handleCloseModal = () => {
     setProjectModalOpened(false);
@@ -39,31 +42,82 @@ export default function AppLayout({
   const handleToggleCollapse = () => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
+
   return (
     <Flex className="fixed inset-0 flex overflow-hidden">
-      <Box
-        style={{
-          height: "100vh",
-          position: "fixed",
-          top: 0,
-          left: 0,
-          zIndex: 20,
-          backgroundColor: "#141416",
-          width: sidebarCollapsed ? "80px" : "288px",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <ProjectSidebar
-          onCreateProject={handleCreateProject}
-          onEditProject={handleEditProject}
-          collapsed={sidebarCollapsed}
-          onToggleCollapse={handleToggleCollapse}
-          me={me}
-          onLogout={onLogout}
-          onNavigateToProfile={onNavigateToProfile}
-        />
-      </Box>
+      {!isMobile && (
+        <Box
+          style={{
+            height: "100vh",
+            position: "fixed",
+            top: 0,
+            left: 0,
+            zIndex: 20,
+            backgroundColor: "#141416",
+            width: sidebarCollapsed ? "80px" : "288px",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <ProjectSidebar
+            onCreateProject={handleCreateProject}
+            onEditProject={handleEditProject}
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={handleToggleCollapse}
+            me={me}
+            onLogout={onLogout}
+            onNavigateToProfile={onNavigateToProfile}
+          />
+        </Box>
+      )}
+
+       {isMobile && (
+        <>
+          <Box
+            style={{
+              position: "fixed",
+              top: 12,
+              left: 12,
+              zIndex: 50,
+            }}
+          >
+            <ActionIcon
+              size="lg"
+              variant="filled"
+              color="gray"
+              onClick={() => setMobileSidebarOpened(true)}
+            >
+              <IconMenu2 size={18} />
+            </ActionIcon>
+          </Box>
+
+          <Drawer
+            opened={mobileSidebarOpened}
+            onClose={() => setMobileSidebarOpened(false)}
+            padding="md"
+            size="80%"
+            position="left"
+            zIndex={60}
+            overlayProps={{ opacity: 0.55 }}
+          >
+            <ProjectSidebar
+              onCreateProject={handleCreateProject}
+              onEditProject={handleEditProject}
+              collapsed={false}
+              onToggleCollapse={handleToggleCollapse}
+              me={me}
+              onLogout={() => {
+                setMobileSidebarOpened(false);
+                onLogout();
+              }}
+              onNavigateToProfile={() => {
+                setMobileSidebarOpened(false);
+                onNavigateToProfile();
+              }}
+            />
+          </Drawer>
+        </>
+      )}
 
       <Flex
         direction="column"
@@ -71,81 +125,13 @@ export default function AppLayout({
           marginLeft: sidebarCollapsed ? "80px" : "288px",
           height: "100vh",
           flex: 1,
-          overflow: "hidden", // giữ layout gọn
+          overflow: "hidden",
         }}
       >
-        {/* Header */}
-       {/* <Box
-          style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 10,
-            height: "65px",
-            borderBottom: "1px solid var(--monday-border-primary)",
-            backgroundColor: "var(--monday-bg-secondary)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0 24px",
-            flexShrink: 0,
-          }}
-        > */}
-          {/* Left: Logo + title */}
-          {/* <Group gap="sm">
-            <IconLayoutKanban size={32} color="#228be6" stroke={2.5} />
-            <Text
-              size="28px"
-              fw={700}
-              c="blue"
-              className="tracking-tight select-none"
-            >
-              TaskBoard
-            </Text>
-          </Group>
-
-          <Group>
-            <NotificationDropdown />
-            <Tooltip label="Logout" position="top" withArrow>
-              <ActionIcon
-                variant="light"
-                // color="red"
-                size="sm"
-                onClick={onLogout}
-              >
-                <IconLogout size={20} />
-              </ActionIcon>
-            </Tooltip>
-            <Button
-              variant="subtle"
-              color="gray"
-              p={4}
-              radius="xl"
-              style={{ height: "auto" }}
-            >
-              <Group gap="sm" onClick={onNavigateToProfile}>
-                <Avatar size="md" src={me?.avatar} radius="xl" color="blue">
-                  {me?.name?.charAt(0)}
-                </Avatar>
-                <div style={{ textAlign: "left" }}>
-                  <Text size="sm" fw={600}>
-                    {me?.name}
-                  </Text>
-                  <Text size="xs" c="dimmed">
-                    {me?.email}
-                  </Text>
-                </div>
-              </Group>
-            </Button>
-          </Group>
-        </Box>  */}
-        <Divider />
-
-        {/* Main content */}
         <Box
           style={{
             flex: 1,
             backgroundColor: "var(--monday-bg-bg)",
-            // backgroundColor: "#141416" ,
             overflowY: "auto",
             padding: "20px",
           }}
@@ -154,7 +140,6 @@ export default function AppLayout({
         </Box>
       </Flex>
 
-      {/* Project Modal */}
       <ProjectModal
         opened={projectModalOpened}
         onClose={handleCloseModal}

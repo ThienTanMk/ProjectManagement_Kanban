@@ -15,6 +15,11 @@ export function useGetStatuses() {
   return useQuery({
     queryKey: ["statuses", currentProjectId, uid],
     queryFn: getStatuses,
+    enabled: !!currentProjectId && !!uid,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 }
 
@@ -35,8 +40,15 @@ export function useUpdateStatus() {
   const { currentProjectId } = useProjectStore();
   const uid = auth.currentUser?.uid;
   return useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) =>
-      updateStatus(id, name),
+    mutationFn: ({
+      id,
+      name,
+      position,
+    }: {
+      id: string;
+      name: string;
+      position: number;
+    }) => updateStatus(id, name, position),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["statuses", currentProjectId, uid],

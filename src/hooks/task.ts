@@ -23,7 +23,7 @@ export const useTasksByProject = (projectId?: string) => {
     queryKey: taskKeys.byProject(projectId as string, uid),
     queryFn: () => taskApi.getTasksByProject(projectId as string),
     enabled: !!projectId && !!uid,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 export const useCurrentProjectTasks = () => {
@@ -36,7 +36,7 @@ export const useTask = (id: string) => {
     queryKey: taskKeys.detail(id, uid),
     queryFn: () => taskApi.getTask(id),
     enabled: !!id && !!uid,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 export const useCreateTask = () => {
@@ -56,31 +56,18 @@ export const useCreateTask = () => {
     },
   });
 };
-// export const useUpdateTask = () => {
-//   const { currentProjectId } = useProjectStore();
-//   const { uid } = useAuth();
-//   return useMutation({
-//     mutationFn: ({ id, data }: { id: string; data: CreateTaskDto }) =>
-//       taskApi.updateTask(id, data),
-//     onSuccess: (response, variables) => {
-//       queryClient.invalidateQueries({
-//         queryKey: taskKeys.detail(variables.id, uid),
-//       });
-//       if (currentProjectId && uid) {
-//         queryClient.invalidateQueries({
-//           queryKey: taskKeys.byProject(currentProjectId, uid),
-//         });
-//       }
-//       queryClient.invalidateQueries({ queryKey: taskKeys.all });
-//     },
-//   });
-// };
 export const useUpdateTask = () => {
   const { currentProjectId } = useProjectStore();
   const { uid } = useAuth();
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: CreateTaskDto }) => {
-      const queryKey = taskKeys.byProject(currentProjectId, uid);
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<CreateTaskDto>;
+    }) => {
+      const queryKey = taskKeys.byProject(currentProjectId ?? "", uid);
       const previousTasks = queryClient.getQueryData<Task[]>(queryKey);
 
       if (previousTasks) {
@@ -128,52 +115,12 @@ export const useDeleteTask = () => {
     },
   });
 };
-// export const useUpdateTaskStatus = () => {
-//   const { currentProjectId } = useProjectStore();
-//   const { uid } = useAuth();
-
-//   return useMutation({
-//     mutationFn: async ({ id, statusId }: { id: string; statusId: string }) => {
-//       // Optimistic update: Set data vào cache trước khi call API
-//       if (currentProjectId && uid) {
-//         const queryKey = taskKeys.byProject(currentProjectId, uid);
-//         const previousTasks = queryClient.getQueryData<Task[]>(queryKey);
-
-//         if (previousTasks) {
-//           const updatedTasks = previousTasks.map((task) =>
-//             task.id === id ? { ...task, statusId: statusId } : task
-//           );
-//           queryClient.setQueryData(queryKey, updatedTasks);
-//         }
-//       }
-
-//       return await taskApi.updateTaskStatus(id, statusId);
-//     },
-//     onSuccess: () => {
-//       if (currentProjectId && uid) {
-//         queryClient.invalidateQueries({
-//           queryKey: taskKeys.byProject(currentProjectId, uid),
-//         });
-//       }
-//     },
-//     onError: (error, variables) => {
-//       // Rollback optimistic update nếu API call thất bại
-//       if (currentProjectId && uid) {
-//         queryClient.invalidateQueries({
-//           queryKey: taskKeys.byProject(currentProjectId, uid),
-//         });
-//       }
-//       console.error("Failed to update task status:", error);
-//     },
-//   });
-// };
 export const useUpdateTaskStatus = () => {
   const { currentProjectId } = useProjectStore();
   const { uid } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, statusId }: { id: string; statusId: string }) => {
-      // Optimistic update trước
       if (currentProjectId && uid) {
         const queryKey = taskKeys.byProject(currentProjectId, uid);
         const previousTasks = queryClient.getQueryData<Task[]>(queryKey);
@@ -185,13 +132,9 @@ export const useUpdateTaskStatus = () => {
           queryClient.setQueryData(queryKey, updatedTasks);
         }
       }
-
-      // API call không await
       return taskApi.updateTaskStatus(id, statusId);
     },
     onSuccess: () => {
-      // Không cần invalidate ngay vì đã optimistic update
-      // Chỉ refetch để đồng bộ với server
       if (currentProjectId && uid) {
         queryClient.refetchQueries({
           queryKey: taskKeys.byProject(currentProjectId, uid),
@@ -199,7 +142,6 @@ export const useUpdateTaskStatus = () => {
       }
     },
     onError: (error, variables) => {
-      // Rollback khi lỗi
       if (currentProjectId && uid) {
         queryClient.invalidateQueries({
           queryKey: taskKeys.byProject(currentProjectId, uid),
@@ -212,13 +154,12 @@ export const useUpdateTaskStatus = () => {
 export const useCreateSubtask = (parentTaskId: string) => {
   const { uid } = useAuth();
   return useMutation({
-    mutationFn: (data: CreateSubtaskDto) => taskApi.createSubtask(parentTaskId, data),
+    mutationFn: (data: CreateSubtaskDto) =>
+      taskApi.createSubtask(parentTaskId, data),
     onSuccess: () => {
-      // Invalidate parent task detail to refetch with new subtask
       queryClient.invalidateQueries({
         queryKey: taskKeys.detail(parentTaskId, uid),
       });
-      // Invalidate subtasks list
       queryClient.invalidateQueries({
         queryKey: taskKeys.subtasks(parentTaskId, uid),
       });
@@ -233,5 +174,161 @@ export const useGetSubtasks = (parentTaskId: string) => {
     queryFn: () => taskApi.getSubtasks(parentTaskId),
     enabled: !!parentTaskId && !!uid,
     staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useCreateTaskWithAI = () => {
+  const { currentProjectId } = useProjectStore();
+  const { uid } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: any) => taskApi.createTaskWithAI(data),
+    onSuccess: () => {
+      if (currentProjectId && uid) {
+        queryClient.invalidateQueries({
+          queryKey: taskKeys.byProject(currentProjectId, uid),
+        });
+      }
+    },
+  });
+};
+
+export const useAITaskCreationStatus = (
+  executionId: string | null,
+  enabled: boolean = true
+) => {
+  const { currentProjectId } = useProjectStore();
+  const { uid } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useQuery({
+    queryKey: ["ai-task-status", executionId],
+    queryFn: () => taskApi.getAITaskCreationStatus(executionId!),
+    enabled: !!executionId && enabled,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return 2000;
+
+      if (data.status === "COMPLETED" || data.status === "FAILED") {
+        if (data.status === "COMPLETED" && currentProjectId && uid) {
+          queryClient.invalidateQueries({
+            queryKey: taskKeys.byProject(currentProjectId, uid),
+          });
+        }
+        return false;
+      }
+
+      return 2000;
+    },
+    staleTime: 0,
+  });
+};
+
+export const useAssignTask = () => {
+  const queryClient = useQueryClient();
+  const { uid } = useAuth();
+
+  return useMutation({
+    mutationFn: ({ taskId, userId }: { taskId: string; userId: string }) =>
+      taskApi.assignTask(taskId, userId),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: taskKeys.detail(variables.taskId, uid),
+      });
+      const { currentProjectId } = useProjectStore.getState();
+      if (currentProjectId && uid) {
+        queryClient.invalidateQueries({
+          queryKey: taskKeys.byProject(currentProjectId, uid),
+        });
+      }
+    },
+  });
+};
+
+export const useAssignTaskWithAI = () => {
+  return useMutation({
+    mutationFn: (taskId: string) => taskApi.assignTaskWithAI(taskId),
+  });
+};
+
+export const useAssignTaskStatus = (
+  executionId: string | null,
+  enabled: boolean = true
+) => {
+  const { currentProjectId } = useProjectStore();
+  const { uid } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useQuery({
+    queryKey: ["ai-assign-status", executionId],
+    queryFn: () => taskApi.getAssignTaskStatus(executionId!),
+    enabled: !!executionId && enabled,
+    refetchInterval: (query) => {
+      const data = query.state.data as any;
+      if (!data) return 2000;
+
+      if (data.status === "COMPLETED" || data.status === "ERROR") {
+        if (data.status === "COMPLETED" && data.taskId && uid) {
+          queryClient.invalidateQueries({
+            queryKey: taskKeys.detail(data.taskId, uid),
+          });
+          if (currentProjectId) {
+            queryClient.invalidateQueries({
+              queryKey: taskKeys.byProject(currentProjectId, uid),
+            });
+          }
+        }
+        return false;
+      }
+
+      return 2000;
+    },
+    staleTime: 0,
+  });
+};
+
+export const useBreakDownTask = () => {
+  return useMutation({
+    mutationFn: (taskId: string) => taskApi.breakDownTask(taskId),
+  });
+};
+
+export const useBreakDownStatus = (
+  executionId: string | null,
+  enabled: boolean = true
+) => {
+  const { currentProjectId } = useProjectStore();
+  const { uid } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useQuery({
+    queryKey: ["ai-breakdown-status", executionId],
+    queryFn: () => taskApi.getBreakDownStatus(executionId!),
+    enabled: !!executionId && enabled,
+    refetchInterval: (query) => {
+      const data = query.state.data as any;
+      if (!data) return 2000;
+
+      if (data.status === "COMPLETED" || data.status === "ERROR") {
+        if (data.status === "COMPLETED" && data.parentTaskId && uid) {
+          queryClient.invalidateQueries({
+            queryKey: taskKeys.detail(data.parentTaskId, uid),
+          });
+          queryClient.invalidateQueries({
+            queryKey: taskKeys.subtasks(data.parentTaskId, uid),
+          });
+          if (currentProjectId) {
+            queryClient.invalidateQueries({
+              queryKey: taskKeys.byProject(currentProjectId, uid),
+            });
+          }
+        }
+        return false;
+      }
+
+      return 2000;
+    },
+    staleTime: 0,
   });
 };

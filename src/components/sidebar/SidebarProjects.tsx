@@ -21,7 +21,7 @@ import { ProjectItem } from "./ProjectItem";
 interface Folder {
   id: string;
   name: string;
-  projectIds: number[];
+  projectIds: string[];
 }
 
 interface SidebarProjectsProps {
@@ -32,12 +32,12 @@ interface SidebarProjectsProps {
   unassignedProjects: Project[];
   customFolders: Folder[];
   showAllProjects: boolean;
-  favoriteProjectIds: Set<number>;
+  favoriteProjectIds: Set<string>;
   expandedFolders: { [key: string]: boolean };
   currentProjectId: string | null;
   refetch: () => void;
-  toggleFavorite: (projectId: number) => void;
-  addProjectToFolder: (projectId: number, folderId: string) => void;
+  toggleFavorite: (projectId: string) => void;
+  addProjectToFolder: (projectId: string, folderId: string) => void;
   handleDragEnd: (result: any) => void;
   handleSelectProject: (project: Project) => void;
   handleDeleteProject: (project: Project) => void;
@@ -73,15 +73,18 @@ export const SidebarProjects: React.FC<SidebarProjectsProps> = ({
     return filteredProjects.filter((p) => folder.projectIds.includes(p.id));
   };
 
-  console.log(
-    "Rendering SidebarProjects, collapsed:",
-    collapsed,
-    "unassignedProjects:",
-    unassignedProjects
-  );
+  if (isLoading) {
+    return (
+      <ScrollArea flex={1} p="md">
+        <Group justify="center" py="xl">
+          <Loader size="sm" />
+        </Group>
+      </ScrollArea>
+    );
+  }
 
   return (
-    <ScrollArea flex={1} p="md" pt="sm">
+    <ScrollArea flex={1} px="md" py="md" pt="xs">
       <DragDropContext onDragEnd={handleDragEnd}>
         <Stack gap="sm">
           {!collapsed && (

@@ -1,42 +1,25 @@
 "use client";
 import { Stack, Group, Text, Badge, Paper, Tooltip } from "@mantine/core";
-import { IconClock, IconCornerDownRight } from "@tabler/icons-react";
+import { IconClock, IconCornerDownRight, IconSubtask } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { Task } from "@/types/api";
+import { getPriorityColor } from "@/lib/utils";
 
 interface SubtaskTreeProps {
   subtasks: Task[];
   onTaskClick: (task: Task) => void;
 }
 
-const getPriorityColor = (priority?: string) => {
-  switch (priority) {
-    case "HIGH":
-      return "red";
-    case "MEDIUM":
-      return "yellow";
-    case "LOW":
-      return "green";
-    default:
-      return "gray";
-  }
-};
-
-export default function SubtaskTree({ subtasks, onTaskClick }: SubtaskTreeProps) {
-  
-  const getTaskLevel = (task: Task, index: number) => {
-    if (task.id.includes('child')) return 1;
-    if (task.id.includes('root')) return 0;
-    
-    return 0; 
-  };
-
+export default function SubtaskTree({
+  subtasks,
+  onTaskClick,
+}: SubtaskTreeProps) {
   return (
     <Stack gap="sm">
       {subtasks.length > 0 ? (
         subtasks.map((task, index) => {
-          const level = getTaskLevel(task, index);
-          
+          const isSubtask = !!task.parentTaskId;
+
           return (
             <Paper
               key={task.id}
@@ -45,50 +28,51 @@ export default function SubtaskTree({ subtasks, onTaskClick }: SubtaskTreeProps)
               withBorder
               style={{
                 cursor: "pointer",
-                backgroundColor: level === 0 ?  "var(--monday-bg-tertiary)" :  "var(--monday-bg-card)",
-                marginLeft: level * 24,
-                borderLeft: level > 0 ? "3px solid var(--monday-primary)" : undefined,
+                backgroundColor: isSubtask
+                  ? "var(--monday-bg-tertiary)"
+                  : "var(--monday-bg-card)",
+                borderLeft: isSubtask
+                  ? "3px solid var(--monday-primary)"
+                  : undefined,
                 borderColor: "var(--monday-border-primary)",
                 color: "var(--monday-text-primary)",
                 transition: "all 0.2s ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "var(--monday-bg-hover)";
+                e.currentTarget.style.backgroundColor =
+                  "var(--monday-bg-hover)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor =  level === 0
-                    ? "var(--monday-bg-tertiary)"
-                    : "var(--monday-bg-card)";
+                e.currentTarget.style.backgroundColor
+                  ? "var(--monday-bg-tertiary)"
+                  : "var(--monday-bg-card)";
               }}
               onClick={() => onTaskClick(task)}
             >
               <Group justify="space-between" wrap="nowrap">
-                <Group gap="sm" style={{ flex: 1 }}>
-                  {/* Icon chỉ định subtask */}
-                  {level > 0 && (
-                    <IconCornerDownRight size={16} color="var(--monday-primary)" />
-                  )}
-                  {level === 0 && <div style={{ width: 16 }} />}
-                  
-                  <div style={{ flex: 1 }}>
-                    <Text fw={500} size="sm" mb={4}>
-                      {task.name}
+                <IconSubtask size={18} color="var(--monday-primary)" />
+                <div style={{ flex: 1 }}>
+                  <Text fw={500} size="sm" mb={4}>
+                    {task.name}
+                  </Text>
+                  {task.description && (
+                    <Text size="xs" lineClamp={1}>
+                      {task.description}
                     </Text>
-                    {task.description && (
-                      <Text size="xs" lineClamp={1}>
-                        {task.description}
-                      </Text>
-                    )}
-                  </div>
-                </Group>
+                  )}
+                </div>
 
                 <Group gap="xs" wrap="nowrap">
                   <Badge color={getPriorityColor(task.priority)} size="sm">
                     {task.priority}
                   </Badge>
-                  
+
                   {task.deadline && (
-                    <Tooltip label={`Deadline: ${dayjs(task.deadline).format("MMM D, YYYY")}`}>
+                    <Tooltip
+                      label={`Deadline: ${dayjs(task.deadline).format(
+                        "MMM D, YYYY"
+                      )}`}
+                    >
                       <Group gap={4}>
                         <IconClock size={14} />
                         <Text size="xs" c="dimmed">
@@ -97,7 +81,7 @@ export default function SubtaskTree({ subtasks, onTaskClick }: SubtaskTreeProps)
                       </Group>
                     </Tooltip>
                   )}
-                  
+
                   {task.actualTime && task.actualTime > 0 && (
                     <Badge variant="light" color="blue" size="sm">
                       {task.actualTime}h

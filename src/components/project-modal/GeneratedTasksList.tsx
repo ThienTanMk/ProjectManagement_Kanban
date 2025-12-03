@@ -13,11 +13,11 @@ import {
 } from "@mantine/core";
 import { IconSparkles, IconX, IconClock, IconUser } from "@tabler/icons-react";
 import dayjs from "dayjs";
-import { GeneratedTask } from "../GenerativeTaskModal";
+import { GeneratedTask } from "../agent/GenerativeTaskModal";
 import GenerativeSubtask, {
   GeneratedSubtask,
   generateSubtasksForTask,
-} from "../GenerativeSubtask";
+} from "../agent/GenerativeSubtask";
 import { getPriorityColor } from "@/lib/utils";
 
 interface GeneratedTasksListProps {

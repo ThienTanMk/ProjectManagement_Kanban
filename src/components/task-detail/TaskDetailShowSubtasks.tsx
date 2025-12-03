@@ -1,19 +1,26 @@
 "use client";
-import { Paper, Group, Text, ActionIcon, ScrollArea, Stack, Badge } from "@mantine/core";
+import {
+  Paper,
+  Group,
+  Text,
+  ActionIcon,
+  ScrollArea,
+  Stack,
+  Badge,
+} from "@mantine/core";
 import { IconX, IconClock } from "@tabler/icons-react";
-import dayjs from "dayjs";
-import { GeneratedSubtask, } from "../GenerativeSubtask";
+import { GeneratedSubtask } from "../agent/GenerativeSubtask";
 import { getPriorityColor } from "@/lib/utils";
 
-interface GeneratedSubtasksPanelProps {
+interface TaskDetailShowSubtasksPanelProps {
   generatedSubtasks: GeneratedSubtask[];
   onClose: () => void;
 }
 
-export function GeneratedSubtasksPanel({
+export function TaskDetailShowSubtasksPanel({
   generatedSubtasks,
   onClose,
-}: GeneratedSubtasksPanelProps) {
+}: TaskDetailShowSubtasksPanelProps) {
   return (
     <Paper
       p="md"
@@ -56,9 +63,6 @@ export function GeneratedSubtasksPanel({
                   leftSection={<IconClock size={12} />}
                 >
                   {sub.estimatedTime}h
-                </Badge>
-                <Badge size="xs" variant="light" color="gray">
-                  {dayjs(sub.deadline).format("MMM DD")}
                 </Badge>
               </Group>
             </Paper>

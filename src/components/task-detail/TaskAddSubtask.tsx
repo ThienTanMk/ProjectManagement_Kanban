@@ -38,13 +38,16 @@ export function TaskAddSubtask({
   const [priority, setPriority] = useState<Priority>(Priority.MEDIUM);
   const [assignees, setAssignees] = useState<string[]>([]);
   const [deadline, setDeadline] = useState<Date | null>(null);
-  const [estimatedTime, setEstimatedTime] = useState<number | undefined>(undefined);
+  const [estimatedTime, setEstimatedTime] = useState<number | undefined>(
+    undefined
+  );
   const [complexity, setComplexity] = useState<number | undefined>(undefined);
   const [tagIds, setTagIds] = useState<string[]>([]);
 
   const { data: availableUsers } = useGetAvailableUsers();
   const { data: tags } = useGetTags();
-  const { mutateAsync: createSubtask, isPending } = useCreateSubtask(parentTaskId);
+  const { mutateAsync: createSubtask, isPending } =
+    useCreateSubtask(parentTaskId);
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -61,7 +64,7 @@ export function TaskAddSubtask({
       description: description.trim() || undefined,
       priority,
       assignees: assignees.length > 0 ? assignees : undefined,
-      deadline: deadline ? dayjs(deadline).toISOString() : undefined,
+      deadline: deadline ? new Date(deadline) : undefined,
       estimatedTime,
       complexity,
       tagIds: tagIds.length > 0 ? tagIds : undefined,
@@ -74,7 +77,7 @@ export function TaskAddSubtask({
         message: "Subtask created successfully!",
         color: "green",
       });
-      
+
       // Reset form
       setName("");
       setDescription("");
@@ -140,7 +143,9 @@ export function TaskAddSubtask({
         <Select
           label="Priority"
           value={priority}
-          onChange={(value) => setPriority((value as Priority) || Priority.MEDIUM)}
+          onChange={(value) =>
+            setPriority((value as Priority) || Priority.MEDIUM)
+          }
           data={[
             { value: Priority.LOW, label: "Low" },
             { value: Priority.MEDIUM, label: "Medium" },
@@ -183,7 +188,7 @@ export function TaskAddSubtask({
           label="Deadline"
           placeholder="Select deadline (optional)"
           value={deadline}
-          onChange={setDeadline}
+          onChange={(value) => setDeadline(value ? new Date(value) : null)}
           clearable
           size="sm"
         />
@@ -212,11 +217,7 @@ export function TaskAddSubtask({
         </Group>
 
         <Group justify="end" mt="md">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isPending}
-          >
+          <Button variant="outline" onClick={onClose} disabled={isPending}>
             Cancel
           </Button>
           <Button

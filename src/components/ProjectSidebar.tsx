@@ -26,7 +26,7 @@ interface ProjectSidebarProps {
 interface Folder {
   id: string;
   name: string;
-  projectIds: number[];
+  projectIds: string[];
 }
 
 const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
@@ -51,7 +51,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const [createFolderModalOpened, setCreateFolderModalOpened] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [showAllProjects, setShowAllProjects] = useState(false);
-  const [favoriteProjectIds, setFavoriteProjectIds] = useState<Set<number>>(
+  const [favoriteProjectIds, setFavoriteProjectIds] = useState<Set<string>>(
     new Set()
   );
   const [expandedFolders, setExpandedFolders] = useState<{
@@ -88,7 +88,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     }));
   };
 
-  const toggleFavorite = (projectId: number) => {
+  const toggleFavorite = (projectId: string) => {
     setFavoriteProjectIds((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(projectId)) {
@@ -114,7 +114,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     }
   };
 
-  const addProjectToFolder = (projectId: number, folderId: string) => {
+  const addProjectToFolder = (projectId: string, folderId: string) => {
     setCustomFolders((folders) =>
       folders.map((folder) => {
         const filteredIds = folder.projectIds.filter((id) => id !== projectId);
@@ -130,7 +130,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     if (!result.destination) return;
 
     const { source, destination, draggableId } = result;
-    const projectId = parseInt(draggableId.replace("project-", ""));
+    const projectId = (draggableId.replace("project-", ""));
     if (source.droppableId !== destination.droppableId) {
       const destFolderId = destination.droppableId.replace("folder-", "");
       if (destFolderId !== "favorites" && destFolderId !== "all") {
@@ -189,9 +189,6 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     );
     return !isInAnyFolder && !favoriteProjectIds.has(p.id);
   });
-
-  console.log("Rendering ProjectSidebar, collapsed:", collapsed, "unassignedProjects:", unassignedProjects);
-
   return (
     <Box
       h="100vh"
@@ -257,8 +254,8 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             filteredProjects={filteredProjects}
             collapsed={collapsed}
             me={me}
-            onLogout={onLogout}
-            onNavigateToProfile={onNavigateToProfile}
+            onLogout={onLogout ?? (() => {})} 
+            onNavigateToProfile={onNavigateToProfile ?? (() => {})}
           />
         </>
       )}

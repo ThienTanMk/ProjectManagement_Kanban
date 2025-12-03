@@ -34,10 +34,10 @@ export function TaskTable({
     >
       <Table.Thead>
         <Table.Tr>
-          <Table.Th className="w-[20%]">Task</Table.Th>
+          <Table.Th className="w-[30%]">Task</Table.Th>
           <Table.Th className="w-[10%]">Subtasks</Table.Th>
           <Table.Th className="w-[10%]">Priority</Table.Th>
-          <Table.Th className="w-[25%]">Assignees</Table.Th>
+          <Table.Th className="w-[15%]">Assignees</Table.Th>
           <Table.Th className="w-[15%]">Deadline</Table.Th>
           <Table.Th className="w-[15%]">Actual Time</Table.Th>
           <Table.Th className="w-[10%]">Actions</Table.Th>

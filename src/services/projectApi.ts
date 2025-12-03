@@ -51,8 +51,14 @@ export const projectApi = {
   },
 
   //  thêm thành viên vào project
-  addMember: async (projectId: string, data: AddMemberRequest): Promise<UsersOnProject> => {
-    const response = await instance.post(`/projects/${projectId}/members`, data);
+  addMember: async (
+    projectId: string,
+    data: AddMemberRequest
+  ): Promise<UsersOnProject> => {
+    const response = await instance.post(
+      `/projects/${projectId}/members`,
+      data
+    );
     return response.data;
   },
 
@@ -61,28 +67,29 @@ export const projectApi = {
     await instance.delete(`/projects/${projectId}/members/${memberId}`);
   },
 
-  // cập nhật vai trò của thành viên
-  updateMemberRole: async (
+  updateMember: async (
     projectId: string,
     memberId: string,
     data: UpdateMemberRoleDto
   ): Promise<UsersOnProject> => {
-    const response = await instance.put(`/projects/${projectId}/members/${memberId}/role`, data);
+    const response = await instance.put(
+      `/projects/${projectId}/members/${memberId}`,
+      data
+    );
     return response.data;
   },
-
-  updateMemberProfile: async (
-    projectId: string,
-    memberId: string,
-    data: UpdateMemberProfileDto
-  ): Promise<UsersOnProject> => {
-    const response = await instance.put(`/projects/${projectId}/members/${memberId}/profile`, data);
-    return response.data;
-  },
-
 
   getRoleOnProject: async (projectId: string): Promise<ProjectRole> => {
     const response = await instance.get(`/projects/${projectId}/role`);
     return response.data;
   },
 };
+
+export function updateTaskStateOrder(
+  projectId: string,
+  stateChanges: { id: string; position: number }[]
+) {
+  return instance.patch(`/projects/${projectId}/task-states/order`, {
+    stateChanges,
+  });
+}

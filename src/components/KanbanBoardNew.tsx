@@ -26,6 +26,7 @@ import {
   IconUsersGroup,
   IconList,
   IconClock,
+  IconClockCancel,
 } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import AddTaskModal from "./AddTaskModal";
@@ -35,6 +36,7 @@ import KanbanCalendar from "./KanbanCalendar";
 import ProjectMember from "./ProjectMember";
 import Summary from "./Summary";
 import Kanban from "./Kanban";
+
 import { useProjectStore } from "../stores/projectStore";
 import {
   useCreateTask,
@@ -50,16 +52,19 @@ import {
   useDeleteStatus,
 } from "@/hooks/status";
 import { Task, CreateTaskDto } from "@/types/api";
-import { unionBy } from "lodash";
+import { isEqual, unionBy } from "lodash";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useGetTeamMembers } from "@/hooks/project";
+import { useGetTeamMembers, useUpdateTaskStatesOrder } from "@/hooks/project";
 import dayjs from "dayjs";
 import { notifications } from "@mantine/notifications";
+import { triggerConfetti } from "@/lib/confetti";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Column {
   id: string;
   title: string;
-  cards: Task[];
+  tasks: Task[];
+  position: number;
 }
 
 export default function KanbanBoard() {
@@ -67,10 +72,19 @@ export default function KanbanBoard() {
   const { currentProjectId } = useProjectStore();
   const { canEditTasks, canDragTasks } = usePermissions();
 
-  const { data: statuses = [] } = useGetStatuses();
+  const { data: _statuses = [] } = useGetStatuses();
   const { mutateAsync: addStatus } = useAddStatus();
+  const { mutateAsync: updateTaskStatesOrder } =
+    useUpdateTaskStatesOrder(currentProjectId);
   const { mutateAsync: updateStatus } = useUpdateStatus();
   const { mutateAsync: deleteStatus } = useDeleteStatus();
+
+  const statuses = useMemo(() => {
+    const sorted = [..._statuses].sort(
+      (a, b) => (a.position ?? 0) - (b.position ?? 0)
+    );
+    return sorted;
+  }, [_statuses]);
 
   const {
     data: tasks,
@@ -91,7 +105,7 @@ export default function KanbanBoard() {
   const [selectedAssignee, setSelectedAssignee] = useState<string | null>(null);
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
   const [addTaskModalOpened, setAddTaskModalOpened] = useState(false);
-  const [initialDeadline, setInitialDeadline] = useState<string | null>(null); // giữ lại ngày ban đầu khi thêm task ở calendar
+  const [initialDeadline, setInitialDeadline] = useState<Date | null>(null); // giữ lại ngày ban đầu khi thêm task ở calendar
   const [taskDetailModalOpened, setTaskDetailModalOpened] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isAddingColumn, setIsAddingColumn] = useState(false);
@@ -102,6 +116,7 @@ export default function KanbanBoard() {
   const [showTeamModal, setShowTeamModal] = useState(false);
 
   const { data: teamMembers = [] } = useGetTeamMembers();
+  const { uid } = useAuth();
 
   const columns: Column[] = useMemo(() => {
     const sortByPosition = (tasks: Task[]) =>
@@ -111,41 +126,19 @@ export default function KanbanBoard() {
       return statuses.map((status) => ({
         id: status.id,
         title: status.name,
-        cards: sortByPosition(
+        tasks: sortByPosition(
           tasks?.filter((task) => task.statusId === status.id) || []
         ),
+        position: status.position ?? 1,
       }));
-    } else {
-      return [
-        {
-          id: "todo",
-          title: "To Do",
-          cards: sortByPosition(
-            tasks?.filter((task) => task.statusId === "todo") || []
-          ),
-        },
-        {
-          id: "inprogress",
-          title: "In Progress",
-          cards: sortByPosition(
-            tasks?.filter((task) => task.statusId === "inprogress") || []
-          ),
-        },
-        {
-          id: "done",
-          title: "Done",
-          cards: sortByPosition(
-            tasks?.filter((task) => task.statusId === "done") || []
-          ),
-        },
-      ];
     }
+    return [];
   }, [statuses, tasks]);
 
   const filteredColumns = useMemo(() => {
     return columns.map((column) => ({
       ...column,
-      cards: column.cards.filter((task) => {
+      tasks: column.tasks.filter((task) => {
         const matchesSearch = task.name
           ?.toLowerCase()
           .includes(searchTerm.toLowerCase());
@@ -156,7 +149,9 @@ export default function KanbanBoard() {
           task.assignees?.map((a) => a.user.id).includes(selectedAssignee);
         const matchesCreator =
           !selectedCreator || task.ownerId === selectedCreator;
-        return matchesSearch && matchesPriority && matchesAssignee && matchesCreator;
+        return (
+          matchesSearch && matchesPriority && matchesAssignee && matchesCreator
+        );
       }),
     }));
   }, [
@@ -167,13 +162,13 @@ export default function KanbanBoard() {
     selectedCreator,
   ]);
 
-  const allTasks = columns.flatMap((col) => col.cards);
+  const allTasks = columns.flatMap((col) => col.tasks);
   const priorities = unionBy(
     allTasks.flatMap((task) => task.priority),
     (o) => o
   );
   const assignees = unionBy(
-    allTasks.flatMap((task) => task.assignees || []),
+    allTasks.flatMap((task) => task.assignees || []).filter((a) => a.user),
     (o) => o.userId
   );
   const creators = unionBy(
@@ -188,16 +183,56 @@ export default function KanbanBoard() {
       const daysUntil = dayjs(task.deadline).diff(dayjs(), "day");
       return daysUntil >= 0 && daysUntil <= 3;
     }).length;
-
-    return { total: totalTasks, dueSoon: dueSoonTasks };
+    const overdueTasks = allTasks.filter((task) => {
+      if (!task.deadline) return false;
+      return dayjs(task.deadline).isBefore(dayjs(), "day");
+    }).length;
+    return { total: totalTasks, dueSoon: dueSoonTasks, overdue: overdueTasks };
   }, [allTasks]);
 
   const handleDragEnd = useCallback(
-    (result: DropResult) => {
+    async (result: DropResult) => {
       if (!canDragTasks) return;
 
-      const { destination, source, draggableId } = result;
+      const { destination, source, draggableId, type } = result;
       if (!destination) return;
+
+      if (type === "COLUMN") {
+        if (destination.index === source.index) return;
+
+        const reordered = Array.from(statuses);
+        const [moved] = reordered.splice(source.index, 1);
+        reordered.splice(destination.index, 0, moved);
+
+        const changedColumns: { id: string; position: number }[] = [];
+
+        reordered.forEach((status, index) => {
+          const newPosition = index + 1;
+          if (status.position !== newPosition) {
+            changedColumns.push({
+              id: status.id,
+              position: newPosition,
+            });
+          }
+        });
+
+        const _ordered = reordered.map((status, index) => ({
+          ...status,
+          position: index + 1,
+        }));
+
+        const statusQueryKey = ["statuses", currentProjectId, uid];
+        queryClient.setQueryData(statusQueryKey, _ordered);
+        try {
+          await updateTaskStatesOrder({ stateChanges: changedColumns });
+        } catch (err) {
+          console.error("Failed to reorder columns:", err);
+          queryClient.invalidateQueries({ queryKey: statusQueryKey });
+        }
+
+        return;
+      }
+
       if (
         destination.droppableId === source.droppableId &&
         destination.index === source.index
@@ -205,12 +240,17 @@ export default function KanbanBoard() {
         return;
       }
 
-      // Update cache ngay lập tức (không chờ API)
       const queryKey = taskKeys.byProject(currentProjectId as string);
+
+      const destinationStatus = statuses.find(
+        (s) => s.id === destination.droppableId
+      );
+      const isDoneStatus =
+        destinationStatus?.name.toLowerCase() === "done" ||
+        destinationStatus?.name.toLowerCase() === "completed";
 
       queryClient.setQueryData<Task[]>(queryKey, (oldTasks) => {
         if (!oldTasks) return oldTasks;
-
         return oldTasks.map((task) =>
           task.id === draggableId
             ? { ...task, statusId: destination.droppableId }
@@ -218,18 +258,27 @@ export default function KanbanBoard() {
         );
       });
 
-      // API call chạy background
+      if (isDoneStatus) {
+        setTimeout(() => {
+          triggerConfetti();
+          notifications.show({
+            title: "Task Completed!",
+            message: "Congratulations on completing this task!",
+            color: "green",
+          });
+        }, 0);
+      }
+
       updateTaskStatus(
         { id: draggableId, statusId: destination.droppableId },
         {
           onError: () => {
-            // Rollback khi fail
             queryClient.invalidateQueries({ queryKey });
           },
         }
       );
     },
-    [canDragTasks, currentProjectId, queryClient, updateTaskStatus]
+    [canDragTasks, currentProjectId, queryClient, statuses]
   );
 
   const handleAddTask = async (data: CreateTaskDto) => {
@@ -261,15 +310,16 @@ export default function KanbanBoard() {
     const trimmedTitle = newColumnTitle.trim();
     if (!trimmedTitle) return;
 
-    // const defaultNames = ["to do", "in progress", "done"];
-    // if (defaultNames.includes(trimmedTitle.toLowerCase())) {
-    //   notifications.show({
-    //     title: "Duplicate name",
-    //     message: "Tên này trùng với danh sách mặc định (To Do / In Progress / Done).",
-    //     color: "red",
-    //   });
-    //   return;
-    // }
+    const defaultNames = ["to do", "in progress", "done"];
+    if (defaultNames.includes(trimmedTitle.toLowerCase())) {
+      notifications.show({
+        title: "Duplicate name",
+        message:
+          "Tên này trùng với danh sách mặc định (To Do / In Progress / Done).",
+        color: "red",
+      });
+      return;
+    }
 
     const isDuplicate = columns.some(
       (col) => col.title.trim().toLowerCase() === trimmedTitle.toLowerCase()
@@ -304,6 +354,17 @@ export default function KanbanBoard() {
 
   const handleDeleteColumn = async (columnId: string) => {
     const column = statuses?.find((s) => s.id === columnId);
+    if (!column) return;
+    const defaultNames = ["to do", "in progress", "done"];
+    if (defaultNames.includes(column.name.trim().toLowerCase())) {
+      notifications.show({
+        title: "Default column",
+        message:
+          "Cột cần xóa trùng với danh sách mặc định (To Do / In Progress / Done).",
+        color: "red",
+      });
+      return;
+    }
     const tasksInColumn =
       tasks?.filter((task) => task.statusId === columnId) || [];
 
@@ -342,11 +403,15 @@ export default function KanbanBoard() {
     });
   };
 
-  const handleRenameColumn = async (columnId: string, newTitle: string) => {
+  const handleUpdateColumn = async (
+    columnId: string,
+    newTitle: string,
+    position: number
+  ) => {
     try {
-      await updateStatus({ id: columnId, name: newTitle });
+      await updateStatus({ id: columnId, name: newTitle, position });
     } catch (error) {
-      console.error("Failed to rename column:", error);
+      console.error("Failed to update column:", error);
     }
   };
 
@@ -477,6 +542,24 @@ export default function KanbanBoard() {
                 {statistics.dueSoon} due soon
               </Text>
             </Group>
+            <Group gap="xs">
+              <IconClockCancel
+                size={14}
+                color={
+                  statistics.overdue > 0 ? "red" : "var(--monday-text-tertiary)"
+                }
+              />
+              <Text
+                size="xs"
+                c={
+                  statistics.overdue > 0
+                    ? "red"
+                    : "var(--monday-text-secondary)"
+                }
+              >
+                {statistics.overdue} overdue
+              </Text>
+            </Group>
 
             {canEditTasks && (
               <Button
@@ -488,102 +571,107 @@ export default function KanbanBoard() {
               </Button>
             )}
 
-            <Button
+            {/* <Button
               leftSection={<IconUsersGroup size={16} />}
               onClick={() => setShowTeamModal(true)}
               size="sm"
             >
               Team
-            </Button>
+            </Button> */}
           </Group>
         </Group>
 
-        <Box>
-          <Group gap="sm">
-            <TextInput
-              placeholder="Search tasks..."
-              leftSection={<IconSearch size={16} />}
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.currentTarget.value)}
-              style={{ flex: 0.8 }}
-            />
-            <Select
-              placeholder="Creator"
-              leftSection={<IconFilter size={16} />}
-              data={creators.map((creator) => ({
-                value: creator.id,
-                label: creator.name,
-              }))}
-              value={selectedCreator}
-              onChange={setSelectedCreator}
-              clearable
-              style={{ flex: 0.6 }}
-            />
-            <Select
-              placeholder="Priority"
-              leftSection={<IconFilter size={16} />}
-              data={priorities.map((priority) => ({
-                value: priority as string,
-                label: priority
-                  ? priority.charAt(0).toUpperCase() + priority.slice(1)
-                  : "",
-              }))}
-              value={selectedPriority}
-              onChange={setSelectedPriority}
-              clearable
-            />
-            <Select
-              placeholder="Assignee"
-              leftSection={<IconFilter size={16} />}
-              data={assignees.map((assignee) => ({
-                value: assignee.user.id,
-                label: assignee.user.name,
-              }))}
-              value={selectedAssignee}
-              onChange={setSelectedAssignee}
-              clearable
-            />
-            {hasActiveFilters && (
-              <Button
-                variant="light"
-                color="gray"
-                leftSection={<IconX size={16} />}
-                onClick={clearFilters}
-                style={{ flexShrink: 0 }}
-              >
-                Clear
-              </Button>
-            )}
-          </Group>
-        </Box>
+        {view !== "summary" && (
+          <>
+            <Box>
+              <Group gap="sm">
+                <TextInput
+                  placeholder="Search tasks..."
+                  leftSection={<IconSearch size={16} />}
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.currentTarget.value)}
+                  style={{ flex: 0.8 }}
+                />
+                <Select
+                  placeholder="Creator"
+                  leftSection={<IconFilter size={16} />}
+                  data={creators.map((creator) => ({
+                    value: creator.id,
+                    label: creator.name,
+                  }))}
+                  value={selectedCreator}
+                  onChange={setSelectedCreator}
+                  clearable
+                  style={{ flex: 0.6 }}
+                />
+                <Select
+                  placeholder="Priority"
+                  leftSection={<IconFilter size={16} />}
+                  data={priorities.map((priority) => ({
+                    value: priority as string,
+                    label: priority
+                      ? priority.charAt(0).toUpperCase() + priority.slice(1)
+                      : "",
+                  }))}
+                  value={selectedPriority}
+                  onChange={setSelectedPriority}
+                  clearable
+                />
+                <Select
+                  placeholder="Assignee"
+                  leftSection={<IconFilter size={16} />}
+                  data={assignees.map((assignee) => ({
+                    value: assignee.user.id,
+                    label: assignee.user.name,
+                  }))}
+                  value={selectedAssignee}
+                  onChange={setSelectedAssignee}
+                  clearable
+                />
+                {hasActiveFilters && (
+                  <Button
+                    variant="light"
+                    color="gray"
+                    leftSection={<IconX size={16} />}
+                    onClick={clearFilters}
+                    style={{ flexShrink: 0 }}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </Group>
+            </Box>
 
-        {hasActiveFilters && (
-          <Group gap="xs" mt="sm">
-            {searchTerm && (
-              <Badge variant="light" color="blue" size="sm">
-                Search: {searchTerm}
-              </Badge>
+            {hasActiveFilters && (
+              <Group gap="xs" mt="sm">
+                {searchTerm && (
+                  <Badge variant="light" color="blue" size="sm">
+                    Search: {searchTerm}
+                  </Badge>
+                )}
+                {selectedPriority && (
+                  <Badge variant="light" color="orange" size="sm">
+                    Priority: {selectedPriority}
+                  </Badge>
+                )}
+                {selectedAssignee && (
+                  <Badge variant="light" color="green" size="sm">
+                    Assignee:{" "}
+                    {
+                      assignees.find((a) => a.userId === selectedAssignee)?.user
+                        ?.name
+                    }
+                  </Badge>
+                )}
+                {selectedCreator && (
+                  <Badge variant="light" color="violet" size="sm">
+                    Creator:{" "}
+                    {creators.find((c) => c.id === selectedCreator)?.name}
+                  </Badge>
+                )}
+              </Group>
             )}
-            {selectedPriority && (
-              <Badge variant="light" color="orange" size="sm">
-                Priority: {selectedPriority}
-              </Badge>
-            )}
-            {selectedAssignee && (
-              <Badge variant="light" color="green" size="sm">
-                Assignee:{" "}
-                {
-                  assignees.find((a) => a.userId === selectedAssignee)?.user
-                    ?.name
-                }
-              </Badge>
-            )}
-            {selectedCreator && (
-              <Badge variant="light" color="violet" size="sm">
-                Creator: {creators.find((c) => c.id === selectedCreator)?.name}
-              </Badge>
-            )}
-          </Group>
+          </>
         )}
       </Paper>
 
@@ -595,7 +683,7 @@ export default function KanbanBoard() {
             onAddTask={handleAddTaskToColumn}
             onAddColumn={handleAddColumn}
             onDeleteColumn={handleDeleteColumn}
-            onRenameColumn={handleRenameColumn}
+            onUpdateColumn={handleUpdateColumn}
             isAddingColumn={isAddingColumn}
             setIsAddingColumn={setIsAddingColumn}
             newColumnTitle={newColumnTitle}
@@ -606,20 +694,20 @@ export default function KanbanBoard() {
         </DragDropContext>
       ) : view === "table" ? (
         <KanbanTableView
-          tasks={filteredColumns.flatMap((col) => col.cards)}
+          tasks={filteredColumns.flatMap((col) => col.tasks)}
           onViewTask={handleTaskClick}
           onTaskStatusChange={handleTaskStatusChange}
           statuses={statuses}
         />
       ) : view === "calendar" ? (
         <KanbanCalendar
-          tasks={filteredColumns.flatMap((col) => col.cards)}
+          tasks={filteredColumns.flatMap((col) => col.tasks)}
           onViewTask={handleTaskClick}
           onTaskDeadlineChange={(id, deadline) =>
-            updateTask({ id, data: { deadline } })
+            updateTask({ id, data: { deadline: deadline ?? undefined } })
           }
           onOpenAddTask={(deadline) => {
-            setInitialDeadline(deadline);
+            setInitialDeadline(deadline ? dayjs(deadline).toDate() : null);
             setAddTaskModalOpened(true);
           }}
         />
@@ -639,7 +727,7 @@ export default function KanbanBoard() {
         taskId={selectedTask?.id as string}
       />
 
-      <Drawer
+      {/* <Drawer
         opened={showTeamModal}
         onClose={() => setShowTeamModal(false)}
         title="Project Team Members"
@@ -649,7 +737,7 @@ export default function KanbanBoard() {
         shadow="xl"
       >
         <ProjectMember teamMembers={teamMembers} tasks={allTasks} />
-      </Drawer>
+      </Drawer> */}
     </Box>
   );
 }
