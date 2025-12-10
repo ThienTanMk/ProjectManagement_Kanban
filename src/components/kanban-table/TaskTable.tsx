@@ -1,5 +1,6 @@
 "use client";
 import { Table } from "@mantine/core";
+import { DroppableProvided } from "@hello-pangea/dnd";
 import { Task } from "@/types/api";
 import { TaskRow } from "./TaskRow";
 
@@ -9,7 +10,7 @@ interface TaskTableProps {
   expandedTasks: Record<string, boolean>;
   onViewTask: (task: Task) => void;
   onToggleExpansion: (taskId: string, e: React.MouseEvent) => void;
-  placeholder?: React.ReactElement;
+  droppableProvided: DroppableProvided;
 }
 
 export function TaskTable({
@@ -18,7 +19,7 @@ export function TaskTable({
   expandedTasks,
   onViewTask,
   onToggleExpansion,
-  placeholder,
+  droppableProvided,
 }: TaskTableProps) {
   return (
     <Table
@@ -43,7 +44,10 @@ export function TaskTable({
           <Table.Th className="w-[10%]">Actions</Table.Th>
         </Table.Tr>
       </Table.Thead>
-      <Table.Tbody>
+      <Table.Tbody 
+        ref={droppableProvided.innerRef} 
+        {...droppableProvided.droppableProps}
+      >
         {tasks.map((task, index) => (
           <TaskRow
             key={task.id}
@@ -55,7 +59,7 @@ export function TaskTable({
             onToggleExpansion={onToggleExpansion}
           />
         ))}
-        {placeholder}
+        {droppableProvided.placeholder}
       </Table.Tbody>
     </Table>
   );

@@ -1,5 +1,5 @@
 "use client";
-import { Paper, Group, Badge, Text, Box } from "@mantine/core";
+import { Paper, Group, Badge, Text } from "@mantine/core";
 import { Droppable } from "@hello-pangea/dnd";
 import { Task } from "@/types/api";
 import { TaskTable } from "./TaskTable";
@@ -49,9 +49,7 @@ export function StatusGroup({
 
       <Droppable droppableId={`table-${status}`}>
         {(provided, snapshot) => (
-          <Box
-            ref={provided.innerRef}
-            {...provided.droppableProps}
+          <div
             style={{
               backgroundColor: snapshot.isDraggingOver
                 ? `var(--monday-bg-active)`
@@ -63,20 +61,20 @@ export function StatusGroup({
             }}
           >
             {tasks.length > 0 ? (
-              <>
-                <TaskTable
-                  tasks={tasks}
-                  groupStatus={status}
-                  expandedTasks={expandedTasks}
-                  onViewTask={onViewTask}
-                  onToggleExpansion={onToggleExpansion}
-                />
-                {provided.placeholder}
-              </>
+              <TaskTable
+                tasks={tasks}
+                groupStatus={status}
+                expandedTasks={expandedTasks}
+                onViewTask={onViewTask}
+                onToggleExpansion={onToggleExpansion}
+                droppableProvided={provided}
+              />
             ) : (
-              <Box
-                p="xl"
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
                 style={{
+                  padding: "2rem",
                   textAlign: "center",
                   border: snapshot.isDraggingOver
                     ? `2px dashed var(--mantine-color-${color}-4)`
@@ -92,9 +90,10 @@ export function StatusGroup({
                     ? `Drop task here to move to ${status}`
                     : `No tasks in ${status}`}
                 </Text>
-              </Box>
+                {provided.placeholder}
+              </div>
             )}
-          </Box>
+          </div>
         )}
       </Droppable>
     </Paper>

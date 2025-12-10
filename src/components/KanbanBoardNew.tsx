@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Group,
   SegmentedControl,
@@ -51,7 +51,7 @@ import {
   useUpdateStatus,
   useDeleteStatus,
 } from "@/hooks/status";
-import { Task, CreateTaskDto } from "@/types/api";
+import { Task, CreateTaskDto, UpdateTaskDto } from "@/types/api";
 import { isEqual, unionBy } from "lodash";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useGetTeamMembers, useUpdateTaskStatesOrder } from "@/hooks/project";
@@ -65,6 +65,9 @@ interface Column {
   title: string;
   tasks: Task[];
   position: number;
+}
+interface ColumnOrderMap {
+  [columnId: string]: string[]; // columnId -> [taskId theo thứ tự]
 }
 
 export default function KanbanBoard() {
@@ -113,27 +116,53 @@ export default function KanbanBoard() {
   const [addTaskToColumnId, setAddTaskToColumnId] = useState<string | null>(
     null
   );
-  const [showTeamModal, setShowTeamModal] = useState(false);
-
-  const { data: teamMembers = [] } = useGetTeamMembers();
   const { uid } = useAuth();
+  const [columnOrderMaps, setColumnOrderMaps] = useState<ColumnOrderMap>({});
+
+  useEffect(() => {
+    if (!tasks || tasks.length === 0) return;
+
+    const maps: ColumnOrderMap = {};
+
+    // nhóm tasks theo statusId và sort theo position
+    const tasksByColumn = tasks.reduce((acc, task) => {
+      if (!acc[task.statusId]) {
+        acc[task.statusId] = [];
+      }
+      acc[task.statusId].push(task);
+      return acc;
+    }, {} as Record<string, Task[]>);
+
+    // Tạo ordered array cho mỗi column
+    Object.entries(tasksByColumn).forEach(([columnId, columnTasks]) => {
+      maps[columnId] = columnTasks
+        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+        .map((t) => t.id);
+    });
+
+    setColumnOrderMaps(maps);
+  }, [tasks]);
 
   const columns: Column[] = useMemo(() => {
-    const sortByPosition = (tasks: Task[]) =>
-      [...tasks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    if (statuses.length === 0 || !tasks) return [];
 
-    if (statuses.length > 0) {
-      return statuses.map((status) => ({
+    return statuses.map((status) => {
+      // Lấy ordered taskId từ map
+      const orderedTaskIds = columnOrderMaps[status.id] || [];
+
+      // Map danh sách Id thành tasks
+      const columnTasks = orderedTaskIds
+        .map((taskId) => tasks.find((t) => t.id === taskId))
+        .filter(Boolean) as Task[];
+
+      return {
         id: status.id,
         title: status.name,
-        tasks: sortByPosition(
-          tasks?.filter((task) => task.statusId === status.id) || []
-        ),
+        tasks: columnTasks,
         position: status.position ?? 1,
-      }));
-    }
-    return [];
-  }, [statuses, tasks]);
+      };
+    });
+  }, [statuses, tasks, columnOrderMaps]);
 
   const filteredColumns = useMemo(() => {
     return columns.map((column) => ({
@@ -232,7 +261,7 @@ export default function KanbanBoard() {
 
         return;
       }
-
+      //task
       if (
         destination.droppableId === source.droppableId &&
         destination.index === source.index
@@ -240,7 +269,9 @@ export default function KanbanBoard() {
         return;
       }
 
-      const queryKey = taskKeys.byProject(currentProjectId as string);
+      const sourceColumnId = source.droppableId;
+      const destColumnId = destination.droppableId;
+      const queryKey = taskKeys.byProject(currentProjectId as string, uid);
 
       const destinationStatus = statuses.find(
         (s) => s.id === destination.droppableId
@@ -249,13 +280,123 @@ export default function KanbanBoard() {
         destinationStatus?.name.toLowerCase() === "done" ||
         destinationStatus?.name.toLowerCase() === "completed";
 
+      // cập nhật columnOrderMaps
+      setColumnOrderMaps((prevMaps) => {
+        const newMaps = { ...prevMaps };
+
+        // Copy arrays để tránh mutate
+        const sourceArray = [...(newMaps[sourceColumnId] || [])];
+        const destArray =
+          sourceColumnId === destColumnId
+            ? sourceArray
+            : [...(newMaps[destColumnId] || [])];
+
+        // Remove task từ source
+        const taskIdToMove = sourceArray[source.index];
+        sourceArray.splice(source.index, 1);
+
+        // thêm vào destination
+        if (sourceColumnId === destColumnId) {
+          sourceArray.splice(destination.index, 0, taskIdToMove);
+          newMaps[sourceColumnId] = sourceArray;
+        } else {
+          destArray.splice(destination.index, 0, taskIdToMove);
+          newMaps[sourceColumnId] = sourceArray;
+          newMaps[destColumnId] = destArray;
+        }
+        return newMaps;
+      });
+
+      let pendingUpdates: Array<{
+        id: string;
+        statusId?: string;
+        position: number;
+      }> = [];
+
+      // cập nhật tasks trong cache
       queryClient.setQueryData<Task[]>(queryKey, (oldTasks) => {
         if (!oldTasks) return oldTasks;
-        return oldTasks.map((task) =>
-          task.id === draggableId
-            ? { ...task, statusId: destination.droppableId }
-            : task
-        );
+
+        const newTasks = oldTasks.map((t) => ({ ...t }));
+
+        // Lấy ordered arrays từ maps mới
+        const sourceArray = [...(columnOrderMaps[sourceColumnId] || [])];
+        const destArray =
+          sourceColumnId === destColumnId
+            ? sourceArray
+            : [...(columnOrderMaps[destColumnId] || [])];
+
+        // xóa và insert
+        const taskIdToMove = sourceArray[source.index];
+        sourceArray.splice(source.index, 1);
+
+        if (sourceColumnId === destColumnId) {
+          sourceArray.splice(destination.index, 0, taskIdToMove);
+        } else {
+          destArray.splice(destination.index, 0, taskIdToMove);
+        }
+
+        // Tính toán updates
+        const tasksToUpdate: Array<{
+          id: string;
+          statusId?: string;
+          position: number;
+        }> = [];
+
+        // cập nhật source column positions
+        if (sourceColumnId !== destColumnId) {
+          sourceArray.forEach((taskId, index) => {
+            const task = newTasks.find((t) => t.id === taskId);
+            if (task) {
+              const newPosition = index + 1;
+              if (task.position !== newPosition) {
+                task.position = newPosition;
+                tasksToUpdate.push({
+                  id: taskId,
+                  position: newPosition,
+                });
+              }
+            }
+          });
+        }
+
+        // cập nhật dest column positions
+        const arrayToProcess =
+          sourceColumnId === destColumnId ? sourceArray : destArray;
+        arrayToProcess.forEach((taskId, index) => {
+          const task = newTasks.find((t) => t.id === taskId);
+          if (task) {
+            const newPosition = index + 1;
+
+            if (taskId === draggableId) {
+              // Task được kéo
+              task.position = newPosition;
+              if (sourceColumnId !== destColumnId) {
+                task.statusId = destColumnId;
+                tasksToUpdate.push({
+                  id: taskId,
+                  statusId: destColumnId,
+                  position: newPosition,
+                });
+              } else {
+                tasksToUpdate.push({
+                  id: taskId,
+                  position: newPosition,
+                });
+              }
+            } else if (task.position !== newPosition) {
+              // Tasks khác bị ảnh hưởng
+              task.position = newPosition;
+              tasksToUpdate.push({
+                id: taskId,
+                position: newPosition,
+              });
+            }
+          }
+        });
+        pendingUpdates = tasksToUpdate;
+
+        return newTasks;
       });
 
       if (isDoneStatus) {
@@ -269,22 +410,56 @@ export default function KanbanBoard() {
         }, 0);
       }
 
-      updateTaskStatus(
-        { id: draggableId, statusId: destination.droppableId },
-        {
-          onError: () => {
-            queryClient.invalidateQueries({ queryKey });
-          },
+      // call api
+      try {
+
+        if (pendingUpdates.length === 0) {
+          return;
         }
-      );
+
+        await Promise.all(
+          pendingUpdates.map(async (update) => {
+            const updateData: UpdateTaskDto = {
+              position: update.position,
+            };
+
+            if (update.statusId) {
+              updateData.statusId = update.statusId;
+            }
+
+            await updateTask({ 
+              id: update.id, 
+              data: updateData
+            });
+          })
+        );
+      } catch (error) {
+        queryClient.invalidateQueries({ queryKey });
+        notifications.show({
+          title: "Update Failed",
+          message: "Failed to save changes. Please try again.",
+          color: "red",
+        });
+      }
     },
-    [canDragTasks, currentProjectId, queryClient, statuses]
+    [
+      canDragTasks,
+      columnOrderMaps,
+      currentProjectId,
+      queryClient,
+      statuses,
+      updateTask,
+      uid,
+    ]
   );
 
   const handleAddTask = async (data: CreateTaskDto) => {
     try {
+      const tasksInProject = tasks ?? [];
+      const nextPosition = tasksInProject.length + 1;
       const createdTask = await createTask({
         ...data,
+        position: nextPosition,
         statusId: addTaskToColumnId || statuses?.[0]?.id || "",
       });
       setSelectedTask(createdTask);

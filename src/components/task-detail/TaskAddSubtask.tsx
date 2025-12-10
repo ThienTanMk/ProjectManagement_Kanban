@@ -16,11 +16,11 @@ import {
 import { DateTimePicker } from "@mantine/dates";
 import { notifications } from "@mantine/notifications";
 import { IconCheck, IconX } from "@tabler/icons-react";
-import dayjs from "dayjs";
 import { CreateSubtaskDto, Priority } from "@/types/api";
 import { useGetAvailableUsers } from "@/hooks/user";
 import { useGetTags } from "@/hooks/tag";
-import { useCreateSubtask } from "@/hooks/task";
+import { useCreateSubtask, useTasksByProject } from "@/hooks/task";
+import { useProjectStore } from "@/stores/projectStore";
 
 interface TaskAddSubtaskProps {
   parentTaskId: string;
@@ -48,6 +48,8 @@ export function TaskAddSubtask({
   const { data: tags } = useGetTags();
   const { mutateAsync: createSubtask, isPending } =
     useCreateSubtask(parentTaskId);
+  const { currentProjectId } = useProjectStore();
+  const { data: tasks } = useTasksByProject(currentProjectId as string);
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -58,7 +60,8 @@ export function TaskAddSubtask({
       });
       return;
     }
-
+    const tasksInProject = tasks ?? [];
+    const nextPosition = tasksInProject.length + 1;
     const subtaskData: CreateSubtaskDto = {
       name: name.trim(),
       description: description.trim() || undefined,
@@ -67,7 +70,7 @@ export function TaskAddSubtask({
       deadline: deadline ? new Date(deadline) : undefined,
       estimatedTime,
       complexity,
-      tagIds: tagIds.length > 0 ? tagIds : undefined,
+      position: nextPosition,
     };
 
     try {
@@ -86,7 +89,6 @@ export function TaskAddSubtask({
       setDeadline(null);
       setEstimatedTime(undefined);
       setComplexity(undefined);
-      setTagIds([]);
 
       onSuccess?.();
       onClose();
@@ -163,21 +165,6 @@ export function TaskAddSubtask({
             availableUsers?.map((user) => ({
               value: user.id,
               label: user.name,
-            })) || []
-          }
-          searchable
-          size="sm"
-        />
-
-        <MultiSelect
-          label="Tags"
-          placeholder="Select tags (optional)"
-          value={tagIds}
-          onChange={setTagIds}
-          data={
-            tags?.map((tag) => ({
-              value: tag.id,
-              label: tag.name,
             })) || []
           }
           searchable
