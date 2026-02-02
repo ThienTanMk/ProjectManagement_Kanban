@@ -1,5 +1,5 @@
 import { auth } from "@/lib/firebase";
-import { addInvite, deleteInvite, getInvites } from "@/services/inviteApi";
+import { addInvite, deleteInvite, getInvites, verifyInvite } from "@/services/inviteApi";
 import { queryClient } from "@/services/queryClient";
 import { useProjectStore } from "@/stores/projectStore";
 import { ProjectRole } from "@/types/api";
@@ -37,6 +37,18 @@ export function useDeleteInvite() {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["invites", uid, currentProjectId],
+      });
+    },
+  });
+}
+
+export function useVerifyInvite() {
+  return useMutation({
+    mutationFn: (inviteCode: string) => verifyInvite(inviteCode),
+    onSuccess: () => {
+      // Invalidate projects query to refresh project list
+      queryClient.invalidateQueries({
+        queryKey: ["projects"],
       });
     },
   });

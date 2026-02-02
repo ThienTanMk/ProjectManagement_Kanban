@@ -55,13 +55,9 @@ export default memo(function TaskCard({
   const progressTotal = card.estimatedTime || 0;
   const isCompleted = hasProgress && progressCompleted >= progressTotal;
 
-  const { data: comments } = useGetCommentByTaskId(card.id);
-  const commentsCount = comments?.length ?? 0;
-
-  const { data: subtasks } = useGetSubtasks(card.id);
-  const subtaskCount = subtasks?.length ?? 0;
-
-  const { data: parentTask } = useTask(card.parentTaskId || "");
+  const commentsCount = card._count?.comment ?? 0;
+  const subtaskCount = card._count?.subTasks ?? 0;
+  const parentTask = card.parentTask;
   const priorityColor = getPriorityColor(card.priority);
 
   if (isCalendarView) {
@@ -273,8 +269,8 @@ export default memo(function TaskCard({
                   isDeadlinePassed(card.deadline)
                     ? "red"
                     : isDeadlineNear(card.deadline)
-                    ? "orange"
-                    : "gray"
+                      ? "orange"
+                      : "gray"
                 }
                 leftSection={<IconCalendar size={10} />}
               >

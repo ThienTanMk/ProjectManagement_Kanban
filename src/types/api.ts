@@ -92,6 +92,7 @@ export interface Invite {
   createdAt: Date;
   updatedAt: Date;
   role: ProjectRole;
+  inviteCode: string;
 }
 
 export interface Notification {
@@ -260,7 +261,7 @@ export interface AITaskStatusResponse {
   }>;
 }
 
-export interface UpdateTaskDto extends Partial<CreateTaskDto> {}
+export interface UpdateTaskDto extends Partial<CreateTaskDto> { }
 
 export interface UpdateTaskStatusDto {
   statusId: string;
@@ -588,9 +589,18 @@ export interface Task {
   complexity?: number;
   estimatedTime?: number;
   parentTaskId?: string;
+  parentTask?: {
+    id: string;
+    name: string;
+  };
   position?: number;
   subTasks?: Task[];
+  _count?: {
+    subTasks?: number;
+    comment?: number;
+  };
 }
+
 
 export interface Status {
   id: string;
@@ -609,7 +619,7 @@ export interface Assignee {
   user: User;
 }
 
-export interface Owner extends User {}
+export interface Owner extends User { }
 
 export interface EmitEvent {
   type: EventType;
@@ -821,6 +831,20 @@ export interface AIAnalysisResponse {
   analysis: string;
   threadId: string;
   executionId: string;
+}
+export interface AIAnalysisStatusResponse {
+  executionId: string;
+  status: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
+  progress: number;
+  currentStep: string;
+  analysis: string | null;
+  threadId: string | null;
+  velocity: any | null;
+  health: any | null;
+  forecast: any | null;
+  error: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
 }
 //Task AI
 export interface AssignTaskDto {

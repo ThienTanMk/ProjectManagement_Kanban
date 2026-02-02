@@ -12,6 +12,7 @@ import {
   CreateFolderModal,
 } from "./sidebar";
 import { modals } from "@mantine/modals";
+import JoinProjectModal from "./JoinProjectModal";
 
 interface ProjectSidebarProps {
   onCreateProject: () => void;
@@ -43,6 +44,8 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const deleteProjectMutation = useDeleteProject();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [joinModalOpened, setJoinModalOpened] = useState(false);
+
   const [filterRole, setFilterRole] = useState<string | null>(null);
   const [customFolders, setCustomFolders] = useState<Folder[]>([
     { id: "work", name: "Work", projectIds: [] },
@@ -52,7 +55,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const [newFolderName, setNewFolderName] = useState("");
   const [showAllProjects, setShowAllProjects] = useState(false);
   const [favoriteProjectIds, setFavoriteProjectIds] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [expandedFolders, setExpandedFolders] = useState<{
     [key: string]: boolean;
@@ -78,7 +81,10 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   // Lưu customFolders và favoriteProjectIds vào local storage khi thay đổi
   useEffect(() => {
     localStorage.setItem("customFolders", JSON.stringify(customFolders));
-    localStorage.setItem("favoriteProjectIds", JSON.stringify(Array.from(favoriteProjectIds)));
+    localStorage.setItem(
+      "favoriteProjectIds",
+      JSON.stringify(Array.from(favoriteProjectIds)),
+    );
   }, [customFolders, favoriteProjectIds]);
 
   const toggleFolder = (key: string) => {
@@ -122,7 +128,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           return { ...folder, projectIds: [...filteredIds, projectId] };
         }
         return { ...folder, projectIds: filteredIds };
-      })
+      }),
     );
   };
 
@@ -130,7 +136,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     if (!result.destination) return;
 
     const { source, destination, draggableId } = result;
-    const projectId = (draggableId.replace("project-", ""));
+    const projectId = draggableId.replace("project-", "");
     if (source.droppableId !== destination.droppableId) {
       const destFolderId = destination.droppableId.replace("folder-", "");
       if (destFolderId !== "favorites" && destFolderId !== "all") {
@@ -180,12 +186,12 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   }, [projects, searchTerm, filterRole]);
 
   const favoriteProjects = filteredProjects.filter((p) =>
-    favoriteProjectIds.has(p.id)
+    favoriteProjectIds.has(p.id),
   );
 
   const unassignedProjects = filteredProjects.filter((p) => {
     const isInAnyFolder = customFolders.some((folder) =>
-      folder.projectIds.includes(p.id)
+      folder.projectIds.includes(p.id),
     );
     return !isInAnyFolder && !favoriteProjectIds.has(p.id);
   });
@@ -213,13 +219,17 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         </Box>
       ) : (
         <>
-          <SidebarHeader collapsed={collapsed} onToggleCollapse={onToggleCollapse} />
+          <SidebarHeader
+            collapsed={collapsed}
+            onToggleCollapse={onToggleCollapse}
+          />
           <SidebarSearchAndActions
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             showAllProjects={showAllProjects}
             setShowAllProjects={setShowAllProjects}
             onCreateProject={onCreateProject}
+            onJoinProject={() => setJoinModalOpened(true)}
           />
           {/* <Divider color="#393D5A" /> */}
           <SidebarProjects
@@ -254,8 +264,12 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             filteredProjects={filteredProjects}
             collapsed={collapsed}
             me={me}
-            onLogout={onLogout ?? (() => {})} 
+            onLogout={onLogout ?? (() => {})}
             onNavigateToProfile={onNavigateToProfile ?? (() => {})}
+          />
+          <JoinProjectModal
+            opened={joinModalOpened}
+            onClose={() => setJoinModalOpened(false)}
           />
         </>
       )}

@@ -23,7 +23,7 @@ export const useTasksByProject = (projectId?: string) => {
     queryKey: taskKeys.byProject(projectId as string, uid),
     queryFn: () => taskApi.getTasksByProject(projectId as string),
     enabled: !!projectId && !!uid,
-    staleTime: 5 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
   });
 };
 export const useCurrentProjectTasks = () => {
@@ -83,12 +83,6 @@ export const useUpdateTask = () => {
       queryClient.invalidateQueries({
         queryKey: taskKeys.detail(variables.id, uid),
       });
-      if (currentProjectId && uid) {
-        queryClient.invalidateQueries({
-          queryKey: taskKeys.byProject(currentProjectId, uid),
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: taskKeys.all });
     },
     onError: (error, variables) => {
       if (currentProjectId && uid) {
@@ -134,13 +128,6 @@ export const useUpdateTaskStatus = () => {
       }
       return taskApi.updateTaskStatus(id, statusId);
     },
-    onSuccess: () => {
-      if (currentProjectId && uid) {
-        queryClient.refetchQueries({
-          queryKey: taskKeys.byProject(currentProjectId, uid),
-        });
-      }
-    },
     onError: (error, variables) => {
       if (currentProjectId && uid) {
         queryClient.invalidateQueries({
@@ -153,6 +140,7 @@ export const useUpdateTaskStatus = () => {
 };
 export const useCreateSubtask = (parentTaskId: string) => {
   const { uid } = useAuth();
+  const { currentProjectId } = useProjectStore();
   return useMutation({
     mutationFn: (data: CreateSubtaskDto) =>
       taskApi.createSubtask(parentTaskId, data),
@@ -163,16 +151,23 @@ export const useCreateSubtask = (parentTaskId: string) => {
       queryClient.invalidateQueries({
         queryKey: taskKeys.subtasks(parentTaskId, uid),
       });
+      queryClient.invalidateQueries({
+        queryKey: taskKeys.byProject(currentProjectId as string, uid),
+      });
     },
   });
 };
 
-export const useGetSubtasks = (parentTaskId: string) => {
+export const useGetSubtasks = (
+  parentTaskId: string,
+  enabled: boolean = true
+) => {
   const { uid } = useAuth();
+
   return useQuery({
     queryKey: taskKeys.subtasks(parentTaskId, uid),
     queryFn: () => taskApi.getSubtasks(parentTaskId),
-    enabled: !!parentTaskId && !!uid,
+    enabled: !!parentTaskId && !!uid && enabled,
     staleTime: 5 * 60 * 1000,
   });
 };

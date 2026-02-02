@@ -11,7 +11,6 @@ import {
   Alert,
   Container,
   Text,
-  Drawer,
   Box,
   Paper,
 } from "@mantine/core";
@@ -23,7 +22,6 @@ import {
   IconFilter,
   IconX,
   IconAlertCircle,
-  IconUsersGroup,
   IconList,
   IconClock,
   IconClockCancel,
@@ -33,7 +31,6 @@ import AddTaskModal from "./AddTaskModal";
 import TaskDetailModal from "./TaskDetailModal";
 import KanbanTableView from "./KanbanTableView";
 import KanbanCalendar from "./KanbanCalendar";
-import ProjectMember from "./ProjectMember";
 import Summary from "./Summary";
 import Kanban from "./Kanban";
 
@@ -44,6 +41,7 @@ import {
   useUpdateTaskStatus,
   useUpdateTask,
   taskKeys,
+  useCurrentProjectTasks,
 } from "../hooks/task";
 import {
   useAddStatus,
@@ -84,7 +82,7 @@ export default function KanbanBoard() {
 
   const statuses = useMemo(() => {
     const sorted = [..._statuses].sort(
-      (a, b) => (a.position ?? 0) - (b.position ?? 0)
+      (a, b) => (a.position ?? 0) - (b.position ?? 0),
     );
     return sorted;
   }, [_statuses]);
@@ -94,14 +92,14 @@ export default function KanbanBoard() {
     isLoading: tasksLoading,
     error: tasksError,
     refetch: refetchTasks,
-  } = useTasksByProject(currentProjectId as string);
+  } = useCurrentProjectTasks();
 
   const { mutateAsync: createTask } = useCreateTask();
   const { mutateAsync: updateTask } = useUpdateTask();
   const { mutate: updateTaskStatus } = useUpdateTaskStatus();
 
   const [view, setView] = useState<"summary" | "board" | "table" | "calendar">(
-    "board"
+    "board",
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPriority, setSelectedPriority] = useState<string | null>(null);
@@ -114,7 +112,7 @@ export default function KanbanBoard() {
   const [isAddingColumn, setIsAddingColumn] = useState(false);
   const [newColumnTitle, setNewColumnTitle] = useState("");
   const [addTaskToColumnId, setAddTaskToColumnId] = useState<string | null>(
-    null
+    null,
   );
   const { uid } = useAuth();
   const [columnOrderMaps, setColumnOrderMaps] = useState<ColumnOrderMap>({});
@@ -125,13 +123,16 @@ export default function KanbanBoard() {
     const maps: ColumnOrderMap = {};
 
     // nhóm tasks theo statusId và sort theo position
-    const tasksByColumn = tasks.reduce((acc, task) => {
-      if (!acc[task.statusId]) {
-        acc[task.statusId] = [];
-      }
-      acc[task.statusId].push(task);
-      return acc;
-    }, {} as Record<string, Task[]>);
+    const tasksByColumn = tasks.reduce(
+      (acc, task) => {
+        if (!acc[task.statusId]) {
+          acc[task.statusId] = [];
+        }
+        acc[task.statusId].push(task);
+        return acc;
+      },
+      {} as Record<string, Task[]>,
+    );
 
     // Tạo ordered array cho mỗi column
     Object.entries(tasksByColumn).forEach(([columnId, columnTasks]) => {
@@ -194,15 +195,15 @@ export default function KanbanBoard() {
   const allTasks = columns.flatMap((col) => col.tasks);
   const priorities = unionBy(
     allTasks.flatMap((task) => task.priority),
-    (o) => o
+    (o) => o,
   );
   const assignees = unionBy(
     allTasks.flatMap((task) => task.assignees || []).filter((a) => a.user),
-    (o) => o.userId
+    (o) => o.userId,
   );
   const creators = unionBy(
     allTasks.flatMap((task) => (task.owner ? [task.owner] : [])),
-    (o) => o.id
+    (o) => o.id,
   );
 
   const statistics = useMemo(() => {
@@ -274,7 +275,7 @@ export default function KanbanBoard() {
       const queryKey = taskKeys.byProject(currentProjectId as string, uid);
 
       const destinationStatus = statuses.find(
-        (s) => s.id === destination.droppableId
+        (s) => s.id === destination.droppableId,
       );
       const isDoneStatus =
         destinationStatus?.name.toLowerCase() === "done" ||
@@ -412,7 +413,6 @@ export default function KanbanBoard() {
 
       // call api
       try {
-
         if (pendingUpdates.length === 0) {
           return;
         }
@@ -427,11 +427,11 @@ export default function KanbanBoard() {
               updateData.statusId = update.statusId;
             }
 
-            await updateTask({ 
-              id: update.id, 
-              data: updateData
+            await updateTask({
+              id: update.id,
+              data: updateData,
             });
-          })
+          }),
         );
       } catch (error) {
         queryClient.invalidateQueries({ queryKey });
@@ -450,7 +450,7 @@ export default function KanbanBoard() {
       statuses,
       updateTask,
       uid,
-    ]
+    ],
   );
 
   const handleAddTask = async (data: CreateTaskDto) => {
@@ -497,7 +497,7 @@ export default function KanbanBoard() {
     }
 
     const isDuplicate = columns.some(
-      (col) => col.title.trim().toLowerCase() === trimmedTitle.toLowerCase()
+      (col) => col.title.trim().toLowerCase() === trimmedTitle.toLowerCase(),
     );
     if (isDuplicate) {
       notifications.show({
@@ -581,7 +581,7 @@ export default function KanbanBoard() {
   const handleUpdateColumn = async (
     columnId: string,
     newTitle: string,
-    position: number
+    position: number,
   ) => {
     try {
       await updateStatus({ id: columnId, name: newTitle, position });

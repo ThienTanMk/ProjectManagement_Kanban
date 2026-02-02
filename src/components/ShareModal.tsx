@@ -39,7 +39,7 @@ export default function ShareModal({ opened, onClose }: ShareModalProps) {
   const [role, setRole] = useState<ProjectRole>(ProjectRole.MEMBER);
   const [isInviting, setIsInviting] = useState(false);
   const [hasInviteSent, setHasInviteSent] = useState(false);
-
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
   const { currentProjectId } = useProjectStore();
   const { data: invites, isLoading: invitesLoading } = useGetInvites();
   const { mutateAsync: addInvite } = useAddInvite();
@@ -57,8 +57,7 @@ export default function ShareModal({ opened, onClose }: ShareModalProps) {
     setIsInviting(true);
     try {
       const res = await addInvite({ email: email.trim(), role });
-      setInviteId(res.id);
-      setHasInviteSent(true);
+      setInviteCode(res.inviteCode);
       notifications.show({
         title: "Invite sent!",
         message: `Invitation sent to ${email} as ${role}`,
@@ -94,13 +93,15 @@ export default function ShareModal({ opened, onClose }: ShareModalProps) {
     }
   };
 
-  const copyInviteLink = () => {
-    navigator.clipboard.writeText(inviteLink);
-    notifications.show({
-      title: "Link copied!",
-      message: "Invite link copied to clipboard",
-      color: "blue",
-    });
+  const copyInviteCode = () => {
+    if (inviteCode) {
+      navigator.clipboard.writeText(inviteCode);
+      notifications.show({
+        title: "Code copied!",
+        message: "Invite code copied to clipboard",
+        color: "blue",
+      });
+    }
   };
 
   const handleRemoveMember = async (userId: string) => {
@@ -124,13 +125,20 @@ export default function ShareModal({ opened, onClose }: ShareModalProps) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
   return (
-    <Modal opened={opened} onClose={onClose}  title={<Text fw={700} fz="xl" c="white">Share Project</Text>}
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title={
+        <Text fw={700} fz="xl" c="white">
+          Share Project
+        </Text>
+      }
       size="900px"
       radius="md"
       shadow="xl"
-      className="border border-gray-300" 
+      className="border border-gray-300"
       mb="md"
-      >
+    >
       <Stack gap="lg">
         <div>
           <Text size="lg" fw={700} mb="mb" mt="md">
@@ -149,7 +157,7 @@ export default function ShareModal({ opened, onClose }: ShareModalProps) {
             />
             <Group gap="lg" align="end">
               <Select
-                label={<Title order={4}>Role</Title>} 
+                label={<Title order={4}>Role</Title>}
                 value={role}
                 onChange={(value) =>
                   setRole((value as ProjectRole) || ProjectRole.MEMBER)
@@ -175,22 +183,41 @@ export default function ShareModal({ opened, onClose }: ShareModalProps) {
           </Stack>
         </div>
 
-        {hasInviteSent && (
-          <div>
-            <Text size="lg" fw={500} mb="mb">
-              Share link
-            </Text>
-            <Group gap="lg">
-              <TextInput value={inviteLink} readOnly style={{ flex: 1 }} />
-              <Button
-                variant="outline"
-                leftSection={<IconCopy size={16} />}
-                onClick={copyInviteLink}
-              >
-                Copy
-              </Button>
-            </Group>
-          </div>
+        {inviteCode && (
+          <Alert
+            color="green"
+            title="Invitation Code"
+            icon={<IconAlertCircle />}
+          >
+            <Stack gap="sm">
+              <Text size="sm">
+                Share this code with the invited person. They can use it to join
+                the project.
+              </Text>
+              <Group gap="sm">
+                <TextInput
+                  value={inviteCode}
+                  readOnly
+                  style={{ flex: 1 }}
+                  styles={{
+                    input: {
+                      fontFamily: "monospace",
+                      fontSize: "16px",
+                      fontWeight: "bold",
+                      letterSpacing: "1px",
+                    },
+                  }}
+                />
+                <Button
+                  variant="light"
+                  leftSection={<IconCopy size={16} />}
+                  onClick={copyInviteCode}
+                >
+                  Copy
+                </Button>
+              </Group>
+            </Stack>
+          </Alert>
         )}
         <div>
           <Text size="lg" fw={700} mb="mb">
@@ -221,13 +248,21 @@ export default function ShareModal({ opened, onClose }: ShareModalProps) {
                               invite.role === ProjectRole.ADMIN
                                 ? "red"
                                 : invite.role === ProjectRole.MEMBER
-                                ? "blue"
-                                : "gray"
+                                  ? "blue"
+                                  : "gray"
                             }
                           >
                             {invite.role}
                           </Badge>
                         </Group>
+                        <Text
+                          size="xs"
+                          c="dimmed"
+                          mt={4}
+                          style={{ fontFamily: "monospace" }}
+                        >
+                          Code: {invite.inviteCode}
+                        </Text>
                       </div>
                     </Group>
                     <Group gap="lg">
@@ -238,8 +273,8 @@ export default function ShareModal({ opened, onClose }: ShareModalProps) {
                           invite.status === InviteStatus.PENDING
                             ? "yellow"
                             : invite.status === InviteStatus.ACCEPTED
-                            ? "green"
-                            : "red"
+                              ? "green"
+                              : "red"
                         }
                       >
                         {invite.status}

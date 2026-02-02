@@ -41,7 +41,7 @@ export default function TaskDetailModal({
     [taskId: string]: GeneratedSubtask[];
   }>({});
   const [nestedTaskId, setNestedTaskId] = useState<string | null>(null);
-  const { data: subtasks } = useGetSubtasks(taskId);
+  const { data: subtasks } = useGetSubtasks(taskId, opened);
   const { data: _task } = useTask(taskId);
   const { mutateAsync: deleteTask } = useDeleteTask();
 
@@ -77,7 +77,7 @@ export default function TaskDetailModal({
 
   const handleSubtasksGenerated = (
     taskId: string,
-    subtasks: GeneratedSubtask[]
+    subtasks: GeneratedSubtask[],
   ) => {
     setGeneratedSubtasks((prev) => ({
       ...prev,

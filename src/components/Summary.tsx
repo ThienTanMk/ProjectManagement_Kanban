@@ -73,33 +73,15 @@ import remarkGfm from "remark-gfm";
 
 dayjs.extend(relativeTime);
 
-interface AIInsight {
-  id: string;
-  type: "warning" | "suggestion" | "success" | "info";
-  title: string;
-  description: string;
-  timestamp: string;
-  priority: "high" | "medium" | "low";
-}
-
-interface TeamMember {
-  id: string;
-  name: string;
-  avatar: string;
-  tasksAssigned: number;
-  tasksCompleted: number;
-  workloadPercentage: number;
-}
-
 const Summary: React.FC = () => {
   const [timeRange, setTimeRange] = useState<string>("7days");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [sprintStart, setSprintStart] = useState<string>(
-    dayjs().subtract(14, "day").format("YYYY-MM-DD")
+    dayjs().subtract(14, "day").format("YYYY-MM-DD"),
   );
   const [sprintEnd, setSprintEnd] = useState<string>(
-    dayjs().format("YYYY-MM-DD")
+    dayjs().format("YYYY-MM-DD"),
   );
 
   const { currentProjectId } = useProjectStore();
@@ -115,26 +97,26 @@ const Summary: React.FC = () => {
     useGetTeamMembers();
 
   const { data: velocity, isLoading: velocityLoading } = useVelocity(
-    currentProjectId || ""
+    currentProjectId || "",
   );
 
   const { data: health, isLoading: healthLoading } = useProjectHealth(
-    currentProjectId || ""
+    currentProjectId || "",
   );
 
   const { data: forecast, isLoading: forecastLoading } = useCompletionForecast(
-    currentProjectId || ""
+    currentProjectId || "",
   );
 
   const { data: sprintReport, isLoading: sprintLoading } = useSprintReport(
     currentProjectId || "",
     sprintStart,
-    sprintEnd
+    sprintEnd,
   );
 
   const { data: aiAnalysis, isLoading: aiLoading } = useAIAnalysis(
     currentProjectId || "",
-    uid || ""
+    uid || "",
   );
 
   const statusOverviewData = useMemo(() => {
@@ -151,10 +133,10 @@ const Summary: React.FC = () => {
           status.name.toLowerCase().includes("complete")
             ? "#10b981"
             : status.name.toLowerCase().includes("progress")
-            ? "#3b82f6"
-            : status.name.toLowerCase().includes("review")
-            ? "#f59e0b"
-            : "#94a3b8",
+              ? "#3b82f6"
+              : status.name.toLowerCase().includes("review")
+                ? "#f59e0b"
+                : "#94a3b8",
       };
     });
 
@@ -168,7 +150,7 @@ const Summary: React.FC = () => {
       .sort(
         (a, b) =>
           new Date(b.updatedAt || b.createdAt || 0).getTime() -
-          new Date(a.updatedAt || a.createdAt || 0).getTime()
+          new Date(a.updatedAt || a.createdAt || 0).getTime(),
       )
       .slice(0, 10);
 
@@ -234,7 +216,7 @@ const Summary: React.FC = () => {
     return teamMembersData.map((member) => {
       // Đếm số tasks được assign cho member này
       const assignedTasks = tasks.filter((task) =>
-        task.assignees?.some((assignee) => assignee.userId === member.userId)
+        task.assignees?.some((assignee) => assignee.userId === member.userId),
       );
 
       // Đếm số tasks đã hoàn thành
@@ -247,7 +229,10 @@ const Summary: React.FC = () => {
       });
 
       // Tính workload percentage (giả sử mỗi task = 10%)
-      const workloadPercentage = Math.min(assignedTasks.length * 10, 100);
+      const workloadPercentage =
+        assignedTasks.length === 0
+          ? 0
+          : Math.round((completedTasks.length / assignedTasks.length) * 100);
 
       return {
         id: member.userId,
@@ -264,6 +249,9 @@ const Summary: React.FC = () => {
       };
     });
   }, [teamMembersData, tasks, statuses]);
+
+  const totalMembers = teamMembersData?.length || 0;
+  const totalTasksCount = tasks?.length || 0;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -533,8 +521,8 @@ const Summary: React.FC = () => {
                                 member.workloadPercentage > 80
                                   ? "red"
                                   : member.workloadPercentage > 60
-                                  ? "yellow"
-                                  : "green"
+                                    ? "yellow"
+                                    : "green"
                               }
                               variant="light"
                               size="sm"
@@ -548,8 +536,8 @@ const Summary: React.FC = () => {
                               member.workloadPercentage > 80
                                 ? "red"
                                 : member.workloadPercentage > 60
-                                ? "yellow"
-                                : "green"
+                                  ? "yellow"
+                                  : "green"
                             }
                             size="sm"
                             radius="xl"
@@ -563,6 +551,20 @@ const Summary: React.FC = () => {
                     </Text>
                   )}
                 </ScrollArea>
+                <Group mt="sm" justify="space-between">
+                  <Text size="xs" c="dimmed">
+                    Total members:{" "}
+                    <Text span fw={700}>
+                      {totalMembers}
+                    </Text>
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    Total tasks:{" "}
+                    <Text span fw={700}>
+                      {totalTasksCount}
+                    </Text>
+                  </Text>
+                </Group>
               </Card>
             </Grid.Col>
           </Grid>
@@ -594,13 +596,13 @@ const Summary: React.FC = () => {
                 <HealthCard
                   title="Resource Utilization"
                   value={`${(health.resources.utilizationRate * 100).toFixed(
-                    0
+                    0,
                   )}%`}
                 />
                 <HealthCard
                   title="Quality Metrics"
                   value={`${(health.quality.defectRate * 100).toFixed(
-                    1
+                    1,
                   )}% defect rate`}
                 />
               </>
@@ -617,8 +619,8 @@ const Summary: React.FC = () => {
                       velocity.trend === "increasing"
                         ? "green"
                         : velocity.trend === "decreasing"
-                        ? "red"
-                        : "blue"
+                          ? "red"
+                          : "blue"
                     }
                     variant="light"
                     leftSection={
@@ -806,8 +808,8 @@ const Summary: React.FC = () => {
                         sprintReport.health === "healthy"
                           ? "green"
                           : sprintReport.health === "at-risk"
-                          ? "yellow"
-                          : "red"
+                            ? "yellow"
+                            : "red"
                       }
                     >
                       {sprintReport.health}

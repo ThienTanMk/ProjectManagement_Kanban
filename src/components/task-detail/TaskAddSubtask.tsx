@@ -19,7 +19,11 @@ import { IconCheck, IconX } from "@tabler/icons-react";
 import { CreateSubtaskDto, Priority } from "@/types/api";
 import { useGetAvailableUsers } from "@/hooks/user";
 import { useGetTags } from "@/hooks/tag";
-import { useCreateSubtask, useTasksByProject } from "@/hooks/task";
+import {
+  useCreateSubtask,
+  useCurrentProjectTasks,
+  useTasksByProject,
+} from "@/hooks/task";
 import { useProjectStore } from "@/stores/projectStore";
 
 interface TaskAddSubtaskProps {
@@ -39,7 +43,7 @@ export function TaskAddSubtask({
   const [assignees, setAssignees] = useState<string[]>([]);
   const [deadline, setDeadline] = useState<Date | null>(null);
   const [estimatedTime, setEstimatedTime] = useState<number | undefined>(
-    undefined
+    undefined,
   );
   const [complexity, setComplexity] = useState<number | undefined>(undefined);
   const [tagIds, setTagIds] = useState<string[]>([]);
@@ -49,7 +53,7 @@ export function TaskAddSubtask({
   const { mutateAsync: createSubtask, isPending } =
     useCreateSubtask(parentTaskId);
   const { currentProjectId } = useProjectStore();
-  const { data: tasks } = useTasksByProject(currentProjectId as string);
+  const { data: tasks } = useCurrentProjectTasks();
 
   const handleSubmit = async () => {
     if (!name.trim()) {

@@ -7,7 +7,12 @@ import {
   Divider,
   Group,
 } from "@mantine/core";
-import { IconSearch, IconPlus, IconList } from "@tabler/icons-react";
+import {
+  IconSearch,
+  IconPlus,
+  IconList,
+  IconUserPlus,
+} from "@tabler/icons-react";
 import NotificationDropdown from "../NotificationDropdown";
 
 interface SidebarSearchAndActionsProps {
@@ -16,6 +21,7 @@ interface SidebarSearchAndActionsProps {
   showAllProjects: boolean;
   setShowAllProjects: (value: boolean) => void;
   onCreateProject: () => void;
+  onJoinProject: () => void;
 }
 
 export const SidebarSearchAndActions: React.FC<
@@ -26,6 +32,7 @@ export const SidebarSearchAndActions: React.FC<
   showAllProjects,
   setShowAllProjects,
   onCreateProject,
+  onJoinProject,
 }) => {
   return (
     <Box p="md">
@@ -42,10 +49,10 @@ export const SidebarSearchAndActions: React.FC<
         <div
           className="flex items-center cursor-pointer"
           onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)";
+            e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)";
           }}
           onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent";
+            e.currentTarget.style.backgroundColor = "transparent";
           }}
           onClick={(e) => {
             // tìm nút <button> (ActionIcon) bên trong NotificationDropdown và click nó
@@ -88,6 +95,32 @@ export const SidebarSearchAndActions: React.FC<
           <IconList size={16} />
           <Text size="sm" flex={1}>
             {showAllProjects ? "All Projects" : "Folders"}
+          </Text>
+        </UnstyledButton>
+
+        <UnstyledButton
+          onClick={onJoinProject}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "6px 8px",
+            borderRadius: "6px",
+            color: "var(--monday-text-primary)",
+            fontWeight: 500,
+            cursor: "pointer",
+            transition: "background-color 0.15s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "var(--monday-bg-hover)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
+        >
+          <IconUserPlus size={16} />
+          <Text size="sm" flex={1}>
+            Join Project
           </Text>
         </UnstyledButton>
 

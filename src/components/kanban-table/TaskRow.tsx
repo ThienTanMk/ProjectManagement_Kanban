@@ -39,9 +39,12 @@ export function TaskRow({
   onViewTask,
   onToggleExpansion,
 }: TaskRowProps) {
-  const { data: subtasks = [] } = useGetSubtasks(task.id);
-  const hasSubtasks = subtasks.length > 0;
-
+  const subtaskCount = task._count?.subTasks ?? 0;
+  const hasSubtasks = subtaskCount > 0;
+  const { data: subtasks = [] } = useGetSubtasks(
+    task.id,
+    isExpanded && hasSubtasks,
+  );
   return (
     <>
       <Draggable key={task.id} draggableId={task.id} index={index}>
@@ -115,7 +118,7 @@ export function TaskRow({
             </Table.Td>
             <Table.Td>
               {hasSubtasks ? (
-                <Tooltip label={`${subtasks.length} subtask(s)`}>
+                <Tooltip label={`${subtaskCount} subtask(s)`}>
                   <Badge
                     color="blue"
                     variant="light"
@@ -123,7 +126,7 @@ export function TaskRow({
                     style={{ cursor: "pointer" }}
                     onClick={(e) => onToggleExpansion(task.id, e)}
                   >
-                    {subtasks.length}
+                    {subtaskCount}
                   </Badge>
                 </Tooltip>
               ) : (

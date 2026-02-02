@@ -6,6 +6,7 @@ import {
   CompletionForecast,
   UserPerformance,
   AIAnalysisResponse,
+  AIAnalysisStatusResponse,
 } from "@/types/api";
 
 export const performancesApi = {
@@ -34,13 +35,18 @@ export const performancesApi = {
   },
 
   // GET /performances/forecast/:projectId
-  getCompletionForecast: async (projectId: string): Promise<CompletionForecast> => {
+  getCompletionForecast: async (
+    projectId: string
+  ): Promise<CompletionForecast> => {
     const res = await instance.get(`/performances/forecast/${projectId}`);
     return res.data;
   },
 
   // GET /performances/user/:userId?days=30
-  getUserPerformance: async (userId: string, days = 30): Promise<UserPerformance> => {
+  getUserPerformance: async (
+    userId: string,
+    days = 30
+  ): Promise<UserPerformance> => {
     const res = await instance.get(`/performances/user/${userId}`, {
       params: { days },
     });
@@ -53,7 +59,31 @@ export const performancesApi = {
     return res.data;
   },
 
-  // GET /performances/ai-analysis/:projectId?userId=&conversationId=
+  // POST /performances/ai-analysis - Start async AI analysis
+  startAIAnalysis: async (
+    projectId: string,
+    userId: string,
+    conversationId?: string
+  ): Promise<{ executionId: string; status: string; message: string }> => {
+    const res = await instance.post(`/performances/ai-analysis`, {
+      projectId,
+      userId,
+      conversationId,
+    });
+    return res.data;
+  },
+
+  // GET /performances/ai-analysis/status/:executionId - Check status
+  getAIAnalysisStatus: async (
+    executionId: string
+  ): Promise<AIAnalysisStatusResponse> => {
+    const res = await instance.get(
+      `/performances/ai-analysis/status/${executionId}`
+    );
+    return res.data;
+  },
+
+  // Legacy GET endpoint - now returns executionId for polling
   analyzeWithAI: async (
     projectId: string,
     userId: string,

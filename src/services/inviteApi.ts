@@ -21,3 +21,14 @@ export async function deleteInvite(id: string): Promise<{ id: string }> {
   const response = await instance.delete(`/invites/${id}`);
   return response.data;
 }
+
+export async function verifyInvite(inviteCode: string): Promise<{
+  success: boolean;
+  projectId: string;
+  role: string;
+}> {
+  const response = await instance.post("/invites/verify", {
+    inviteCode,
+  });
+  return response.data;
+}

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { performancesApi } from "@/services/performancesApi";
 
 export const performanceKeys = {
@@ -78,6 +78,41 @@ export const useTeamMetrics = (projectId: string) => {
     queryKey: performanceKeys.team(projectId),
     queryFn: () => performancesApi.getTeamMetrics(projectId),
     staleTime: 1000 * 60 * 15,
+  });
+};
+
+export const useStartAIAnalysis = () => {
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      userId,
+      conversationId,
+    }: {
+      projectId: string;
+      userId: string;
+      conversationId?: string;
+    }) => performancesApi.startAIAnalysis(projectId, userId, conversationId),
+  });
+};
+
+export const useAIAnalysisStatus = (
+  executionId: string | null,
+  enabled: boolean = true
+) => {
+  return useQuery({
+    queryKey: ["ai-analysis-status", executionId],
+    queryFn: () => performancesApi.getAIAnalysisStatus(executionId!),
+    enabled: !!executionId && enabled,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return 1500;
+
+      if (data.status === "COMPLETED" || data.status === "FAILED") {
+        return false;
+      }
+      return 1500;
+    },
+    staleTime: 0,
   });
 };
 
